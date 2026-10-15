@@ -8,3 +8,4 @@ Samsung One UI apps, patched to run on non-Samsung Android phones.
 
 - My Files 15.6.03.3: browsing and file operations.
 - My Files: Recycle bin (move, restore, empty, 30-day expiry).
+- A generic `scripts/build.sh` that reads each port's `port.conf`; original APKs pinned by SHA-256.
