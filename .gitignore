@@ -1,0 +1,23 @@
+# --- Never commit: Samsung's binaries, decompiled Samsung code, the signing key ---
+*.apk
+*.apkm
+*.idsig
+ports/*/orig/*
+!ports/*/orig/.gitkeep
+ports/*/work/
+ports/*/java_src/
+ports/*/.dex/
+keys/
+*.keystore
+*.jks
+
+# Device-specific / generated
+framework/
+dist/
+testmedia/
+.shots/
+analysis.json
+*.log
+
+.DS_Store
+__pycache__/
