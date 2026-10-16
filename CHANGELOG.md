@@ -9,3 +9,4 @@ All notable changes to OnePort.
 - My Files: Recycle bin (move, restore, empty, 30-day expiry).
 - A generic `scripts/build.sh` that reads each port's `port.conf`; original APKs pinned by SHA-256.
 - Gallery 15.9.00.45: timeline, albums, viewer, video and favourites.
+- Gallery: the Recycle bin, shared with My Files.
