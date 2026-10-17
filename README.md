@@ -14,3 +14,4 @@ Samsung One UI apps, patched to run on non-Samsung Android phones.
 - Photo Editor 3.9.09.16: crop, rotate and flip (lossless), filters, Tone, S Pen drawing, stickers and text.
 - Photo Editor: Colour mix, Spot colour and Lasso; save over the original or as a copy.
 - Photo Editor: Re-edit and Revert after saving.
+- Gallery: the Edit round trip with Photo Editor.
