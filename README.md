@@ -11,3 +11,4 @@ Samsung One UI apps, patched to run on non-Samsung Android phones.
 - A generic `scripts/build.sh` that reads each port's `port.conf`; original APKs pinned by SHA-256.
 - Gallery 15.9.00.45: timeline, albums, viewer, video and favourites.
 - Gallery: the Recycle bin, shared with My Files.
+- Photo Editor 3.9.09.16: crop, rotate and flip (lossless), filters, Tone, S Pen drawing, stickers and text.
