@@ -14,3 +14,4 @@ All notable changes to OnePort.
 - Photo Editor: Colour mix, Spot colour and Lasso; save over the original or as a copy.
 - Photo Editor: Re-edit and Revert after saving.
 - Gallery: the Edit round trip with Photo Editor.
+- Galaxy AI is deliberately not included: it runs on Samsung's servers for Galaxy devices only, and OnePort doesn't impersonate Galaxy phones or access Samsung's services.
