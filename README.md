@@ -19,3 +19,35 @@ Samsung One UI apps, patched to run on non-Samsung Android phones.
 - Video Player 7.4.00.6 (beta): local playback, seeking and the on-screen controls.
 - Video Player: Android system picture-in-picture; fixes for startup and playback crashes on non-Samsung phones.
 - `install.sh`: a one-command installer that also grants the access the apps need.
+
+## Compatibility
+
+### General requirements
+
+| | |
+|---|---|
+| **Phone** | Any non-Samsung Android phone with a 64-bit ARM processor (arm64-v8a) |
+| **Not supported** | Samsung phones (they already have these apps), 32-bit-only phones and x86 devices |
+| **Not needed** | Root, a custom ROM, or a Samsung account |
+| **To install** | A computer with `adb` (recommended), or install the APKs directly on the phone |
+| **Tested on** | Motorola Edge 60 Pro, Android 17 (API 37), MediaTek Dimensity 8300 |
+
+### Requirements per app
+
+| App | Minimum Android | Special access to grant | Works with | Opens from | Size |
+|---|---|---|---|---|---|
+| **My Files** | 16 (API 36) | All files access | Shares the Recycle bin with Gallery | Launcher | 68 MB |
+| **Gallery** | 11 (API 30) | All files access, Media management | **Edit** needs Photo Editor from the same release | Launcher | 59 MB |
+| **Photo Editor** | 16 (API 36) | All files access, Media management | Gallery | Gallery's **Edit** button (no launcher icon, as on a Galaxy phone) | 87 MB |
+| **Video Player** (beta) | 17 (API 37) | All files access | Gallery | Gallery, or any app's **Open with** menu (no launcher icon) | 16 MB |
+
+Each app can be installed on its own. Install Gallery and Photo Editor together if you want to edit photos from Gallery. `install.sh` grants the special access for you; on the phone you can grant it under *Settings → Apps → Special app access*.
+
+### Android versions
+
+| Android | My Files | Gallery | Photo Editor | Video Player (beta) |
+|---|---|---|---|---|
+| **17** (API 37) | ✅ Tested | ✅ Tested | ✅ Tested | 🧪 Tested, beta |
+| **16** (API 36) | Should work, untested | Should work, untested | Should work, untested | ❌ Won't install |
+| **11 to 15** (API 30–35) | ❌ Won't install | ⚠️ Installs, untested | ❌ Won't install | ❌ Won't install |
+| **10 or older** | ❌ | ❌ | ❌ | ❌ |
