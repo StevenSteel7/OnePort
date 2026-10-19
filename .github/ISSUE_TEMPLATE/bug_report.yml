@@ -1,0 +1,44 @@
+name: Bug report
+description: Something crashes or doesn't work as described in the README
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please check the README's "What doesn't work" table first: Galaxy AI is deliberately
+        not included, and a few Samsung-firmware features can't be ported.
+  - type: dropdown
+    id: app
+    attributes:
+      label: App
+      options: [My Files, Gallery, Photo Editor, Video Player (beta), Installer / install.sh]
+    validations: { required: true }
+  - type: input
+    id: release
+    attributes: { label: OnePort release, placeholder: v1.0.0 }
+    validations: { required: true }
+  - type: input
+    id: phone
+    attributes: { label: Phone model and Android version, placeholder: "Pixel 9, Android 17" }
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes: { label: Steps to reproduce, placeholder: "1. Open Gallery\n2. ..." }
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes: { label: What happened, and what did you expect? }
+    validations: { required: true }
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Run `adb logcat -b crash -d > crash.log` right after the problem and attach it (drag and drop). Check it for personal info first.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I installed the APKs from this repository's Releases page and the SHA256SUMS matched
+          required: true
+        - label: "All files access" is turned on for the app

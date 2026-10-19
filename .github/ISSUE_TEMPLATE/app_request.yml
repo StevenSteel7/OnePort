@@ -1,0 +1,14 @@
+name: App request
+description: Suggest another One UI app to port
+labels: [app-request]
+body:
+  - type: markdown
+    attributes:
+      value: Apps that work mostly offline port best. Apps built on Samsung cloud services or Galaxy AI are out of scope, out of respect for Samsung's terms.
+  - type: input
+    id: app
+    attributes: { label: App name and package, placeholder: "Samsung Notes (com.samsung.android.app.notes)" }
+    validations: { required: true }
+  - type: textarea
+    id: why
+    attributes: { label: What would you use it for? Which features matter most? }

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting guide
+    url: https://github.com/StevenSteel7/OnePort/blob/main/docs/TROUBLESHOOTING.md
+    about: Common install errors and fixes. Please check here first.

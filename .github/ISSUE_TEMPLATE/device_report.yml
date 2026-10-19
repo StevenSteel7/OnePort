@@ -1,0 +1,35 @@
+name: Device report
+description: Tell us how OnePort runs on your phone (working or not), to build the compatibility list
+labels: [device-report]
+body:
+  - type: input
+    id: phone
+    attributes: { label: Phone model, placeholder: "OnePlus 13" }
+    validations: { required: true }
+  - type: input
+    id: android
+    attributes: { label: Android version and ROM/skin, placeholder: "Android 16, OxygenOS 16" }
+    validations: { required: true }
+  - type: input
+    id: release
+    attributes: { label: OnePort release, placeholder: v1.0.0 }
+    validations: { required: true }
+  - type: dropdown
+    id: myfiles
+    attributes: { label: My Files, options: [Works, Partly works, Crashes, Not tested] }
+    validations: { required: true }
+  - type: dropdown
+    id: gallery
+    attributes: { label: Gallery, options: [Works, Partly works, Crashes, Not tested] }
+    validations: { required: true }
+  - type: dropdown
+    id: photoeditor
+    attributes: { label: Photo Editor, options: [Works, Partly works, Crashes, Not tested] }
+    validations: { required: true }
+  - type: dropdown
+    id: video
+    attributes: { label: Video Player (beta), options: [Works, Partly works, Crashes, Not tested] }
+    validations: { required: true }
+  - type: textarea
+    id: notes
+    attributes: { label: Notes, description: Anything that didn't work. Attach a crash log if something crashed. }
