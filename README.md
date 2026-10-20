@@ -10,7 +10,6 @@ My Files · Gallery · Photo Editor · Video Player (beta)
 [![Android](https://img.shields.io/badge/Android-16%2B-3ddc84?logo=android&logoColor=white)](#compatibility)
 [![arm64](https://img.shields.io/badge/ABI-arm64--v8a-informational)](#compatibility)
 [![License: MIT (tooling)](https://img.shields.io/badge/license-MIT%20(tooling)-blue)](LICENSE)
-[![Maintained](https://img.shields.io/badge/maintained-yes-brightgreen)](#maintenance-promise)
 
 </div>
 
@@ -19,7 +18,7 @@ My Files · Gallery · Photo Editor · Video Player (beta)
 OnePort adapts Samsung's own One UI apps so they install and run like normal apps on a stock-ish Android phone. It doesn't need root, a custom ROM or a Samsung account.
 
 > [!IMPORTANT]
-> This is an **unofficial** community project, and it is **not affiliated with or endorsed by Samsung**. Read [Caveats](#caveats--read-before-installing) before installing.
+> This is an **unofficial** community project, and it is **not affiliated with or endorsed by Samsung**. Read [Caveats](#caveats) before installing.
 
 ## Contents
 
@@ -28,9 +27,7 @@ OnePort adapts Samsung's own One UI apps so they install and run like normal app
 - [Install](#install)
 - [Updating and uninstalling](#updating-and-uninstalling)
 - [What works and what doesn't](#what-works-and-what-doesnt)
-- [Caveats](#caveats--read-before-installing)
-- [Troubleshooting](#troubleshooting)
-- [Maintenance promise](#maintenance-promise)
+- [Caveats](#caveats)
 - [Roadmap](#roadmap)
 - [Building from source](#building-from-source)
 - [Contributing](#contributing)
@@ -184,46 +181,16 @@ The package names are in [the apps table](#the-apps).
 
 The full, current list is in [the issue tracker](https://github.com/StevenSteel7/OnePort/issues).
 
-## Caveats (read before installing)
+## Caveats
 
 > [!WARNING]
-> **Try it on photos you have backed up.** OnePort has been tested carefully, but Gallery and Photo Editor *write to your real photos* (save over original, delete, move to bin). These are Samsung apps running somewhere they were never designed to run. Until you trust the apps on your phone, keep a backup (Google Photos, a PC copy, anything).
+> **Back up your photos first.** Gallery and Photo Editor edit, move and delete your real files.
 
-- **Unofficial and unsupported by Samsung.** Don't contact Samsung support about these builds. Report problems [here](https://github.com/StevenSteel7/OnePort/issues).
-- **Broad permissions.** The apps ask for *All files access* and *Media management*, because on a Samsung phone they're privileged system apps. OnePort adds **no network code, analytics or trackers**. Apart from the patches in this repository, the code is Samsung's original app code as published. You can audit every change, because the patchers and the compatibility code are all here in plain Python and Java.
-- **Not signed by Samsung.** The APKs are re-signed with the OnePort key. Only install OnePort APKs from this repository's [Releases](https://github.com/StevenSteel7/OnePort/releases), and check `SHA256SUMS`. An APK with the same package name from anywhere else could be anything.
-- **Galaxy AI is deliberately not included.** OnePort doesn't impersonate Galaxy phones or access Samsung's servers, out of respect for Samsung's terms. Feature requests for it will be closed.
-- **Some features are gone for good** (see above), because they need Samsung's firmware.
-- **No Samsung account or cloud.** Samsung Cloud sync, sharing to Samsung services and similar features won't work.
-- **A phone OS update can break things.** A major Android update can, rarely, change something the apps rely on. If an update breaks an app, open an issue. Fixing these is the [maintenance promise](#maintenance-promise).
-- **Your phone is not Samsung's test target.** Expect the odd rough edge: a missing animation, a settings item that does nothing, a vibration that doesn't fire.
-
-## Troubleshooting
-
-| Symptom | Fix |
-|---|---|
-| `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | A copy signed with a different key is already installed. `adb uninstall <package>` (this deletes that copy's data), then install again. |
-| `INSTALL_FAILED_MISSING_SHARED_LIBRARY` | Your phone lacks a library the build expects. Open an issue with the full error line. |
-| `INSTALL_FAILED_OLDER_SDK` / "App not installed" | Your Android version is too old. See [Compatibility](#compatibility). |
-| App can't delete, edit or favourite photos | Turn on *All files access* (and *Media management*) for it. See [Option B](#option-b-phone-only), steps 2 and 3. |
-| App closes right after granting access | Expected: Android restarts an app when its access changes. Open it again. |
-| Edit button in Gallery does nothing | Install Photo Editor from the same OnePort release. Both apps must come from OnePort. |
-| Crash on launch | Run `adb logcat -b crash -d > crash.log` and attach it to a [bug report](https://github.com/StevenSteel7/OnePort/issues/new?template=bug_report.yml). |
-
-More detail is in [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
-
-## Maintenance promise
-
-OnePort is actively maintained, and I'm committing to these:
-
-1. **Bugs get triaged.** Every issue gets a response, with a label and a next step, within **7 days**.
-2. **Android updates are tracked.** When a new major Android release (or a big update on a tested phone) breaks a port, fixing it is the top priority, ahead of new features.
-3. **One signing key, forever.** Every future release is signed with the same OnePort key, so updates always install over the previous version **without losing data**. The key is kept offline and is never committed.
-4. **Reproducible from source.** Every release can be rebuilt from this repository plus Samsung's original APKs, which are pinned by SHA-256. The release notes say exactly which Samsung versions were used.
-5. **Honest status.** The tables in this README are updated with every release. If something stops working, it's marked here, not hidden.
-6. **Newer Samsung versions.** When Samsung ships an app version with something worth having, it gets re-ported and released.
-
-If I ever have to step back, I'll say so clearly at the top of this README and in a pinned issue. I won't let the project go silent, and I'll hand over to a trusted co-maintainer where possible.
+- **Unofficial.** Not affiliated with Samsung. Report problems [here](https://github.com/StevenSteel7/OnePort/issues), not to Samsung.
+- **Broad permissions.** The apps need *All files access* (and *Media management*). OnePort adds no network code, analytics or trackers.
+- **Install only from [Releases](https://github.com/StevenSteel7/OnePort/releases)** and check `SHA256SUMS`. The APKs are re-signed with the OnePort key.
+- **No Galaxy AI, Samsung account or Samsung Cloud.** Some features need Samsung firmware and are gone for good (see above).
+- **Android updates can break things.** If one does, open an issue.
 
 ## Roadmap
 
