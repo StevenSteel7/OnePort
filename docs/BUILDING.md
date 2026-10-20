@@ -94,7 +94,7 @@ ports/<app>/
 2. `patch.py` runs, then the app's own patcher, then any `post_patch` hook from `port.conf`.
 3. `apktool b` assembles the smali, and **only `classes*.dex` is kept**.
 4. `compat_src/` is compiled with `javac` and `d8` and added as one extra `classesN.dex`.
-5. The original APK is copied. Its `META-INF/` and dex files are deleted, and the new dex files are added uncompressed. If `PERMS` is set, a binary-patched `AndroidManifest.xml` is added as well (`axml_add_perm.py`, plus `axml_optional_libs.py` if `OPTIONAL_LIBS=1`).
+5. The original APK is copied. Its `META-INF/` and dex files are deleted, and the new dex files are added uncompressed. The binary `AndroidManifest.xml` is then patched with the tools in `scripts/manifest/`: `axml_add_perm.py` adds `PERMS`, `axml_optional_libs.py` marks Samsung-only libraries optional (on by default, `OPTIONAL_LIBS=1`), and `axml_add_attr.py` adds a missing launcher icon when `APP_ICON` is set.
 6. `zipalign -P 16` and `apksigner` run last.
 
 Resources are never rebuilt. Samsung's obfuscated resource names differ only by case (`vB.xml`/`vb.xml`), and the case-insensitive macOS filesystem merges them.

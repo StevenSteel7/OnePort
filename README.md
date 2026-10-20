@@ -57,13 +57,13 @@ The three stable apps are signed with the same key, so they work together the wa
 | **Not supported** | Samsung phones (they already have these apps), 32-bit-only phones and x86 devices |
 | **Not needed** | Root, a custom ROM, or a Samsung account |
 | **To install** | A computer with `adb` (recommended), or install the APKs directly on the phone |
-| **Tested on** | Motorola Edge 60 Pro, Android 17 (API 37), MediaTek Dimensity 8300 |
+| **Tested on** | Motorola Edge 60 Pro, Android 17 (API 37), MediaTek Dimensity 8300. Installing, and basic use of My Files, also tested on Android 14–17 emulators (Google Play images). |
 
 ### Requirements per app
 
 | App | Minimum Android | Special access to grant | Works with | Opens from | Size |
 |---|---|---|---|---|---|
-| **My Files** | 16 (API 36) | All files access | Shares the Recycle bin with Gallery | Launcher | 68 MB |
+| **My Files** | 14 (API 34) | All files access | Shares the Recycle bin with Gallery | Launcher | 68 MB |
 | **Gallery** | 11 (API 30) | All files access, Media management | **Edit** needs Photo Editor from the same release | Launcher | 59 MB |
 | **Photo Editor** | 16 (API 36) | All files access, Media management | Gallery | Gallery's **Edit** button (no launcher icon, as on a Galaxy phone) | 87 MB |
 | **Video Player** (beta) | 17 (API 37) | All files access | Gallery | Gallery, or any app's **Open with** menu (no launcher icon) | 16 MB |
@@ -75,8 +75,9 @@ Each app can be installed on its own. Install Gallery and Photo Editor together 
 | Android | My Files | Gallery | Photo Editor | Video Player (beta) |
 |---|---|---|---|---|
 | **17** (API 37) | ✅ Tested | ✅ Tested | ✅ Tested | 🧪 Tested, beta |
-| **16** (API 36) | Should work, untested | Should work, untested | Should work, untested | ❌ Won't install |
-| **11 to 15** (API 30–35) | ❌ Won't install | ⚠️ Installs, untested | ❌ Won't install | ❌ Won't install |
+| **16** (API 36) | ✅ Tested (emulator) | ✅ Installs (emulator) | ✅ Installs (emulator) | ❌ Won't install |
+| **14 and 15** (API 34–35) | ✅ Tested (emulator) | ✅ Installs (emulator) | ❌ Won't install | ❌ Won't install |
+| **11 to 13** (API 30–33) | ❌ Won't install | ⚠️ Installs, untested | ❌ Won't install | ❌ Won't install |
 | **10 or older** | ❌ | ❌ | ❌ | ❌ |
 
 Phones differ in their framework, so an app can crash on one brand and work on another. If you try OnePort on a phone that isn't listed here, please [file a device report](https://github.com/StevenSteel7/OnePort/issues/new?template=device_report.yml), whether it works or not. Each report makes the list above more useful for everyone.

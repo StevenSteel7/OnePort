@@ -16,13 +16,19 @@ Attach both files to a [bug report](https://github.com/StevenSteel7/OnePort/issu
 
 ## Install errors
 
-| Error | Cause | Fix |
-|---|---|---|
-| `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | A copy signed with a different key is installed (a stock Samsung APK, or someone else's build) | `adb uninstall <package>`, then install again. This deletes that copy's data. |
-| `INSTALL_FAILED_MISSING_SHARED_LIBRARY` | The phone lacks a system library the build expects | Please report it, with the full line |
-| `INSTALL_FAILED_OLDER_SDK` | Android is too old | My Files and Photo Editor need Android 16, Gallery needs Android 11, and Video needs Android 17. See [Compatibility](../README.md#compatibility). |
-| `INSTALL_FAILED_NO_MATCHING_ABIS` | The phone isn't arm64 | Not supported |
-| "App not installed as package appears to be invalid" | Corrupted download | Check `SHA256SUMS` and download again |
+`./install.sh` recognises all of these and prints the fix. Run it with `--replace` to uninstall a conflicting copy
+automatically (it asks first when run interactively).
+
+| On the phone | With adb | Cause | Fix |
+|---|---|---|---|
+| "App not installed as package conflicts with an existing package" | `INSTALL_FAILED_UPDATE_INCOMPATIBLE` (signatures do not match) | A copy of the same app signed with a different key is installed: a stock Samsung APK (e.g. from APKMirror) or someone else's port | Uninstall that copy, then install again: `adb uninstall <package>` or Settings → Apps. This deletes that copy's data. Android never lets one signature replace another, so there's no way around this. Updating from one OnePort release to the next keeps your data. |
+| "App not installed as app isn't compatible with your phone" | `INSTALL_FAILED_OLDER_SDK` | Android is too old | Gallery needs Android 11, My Files Android 14, Photo Editor Android 16, and Video Android 17. See [Compatibility](../README.md#compatibility). |
+| Same | `INSTALL_FAILED_NO_MATCHING_ABIS` | The phone isn't 64-bit ARM | Not supported |
+| Same, on some phones | `INSTALL_FAILED_MISSING_SHARED_LIBRARY` … `libOpenCL.so` | Gallery v1.0.0–v1.0.1 required OpenCL, which many GPUs don't expose to apps | Fixed in v1.1.0. Update. |
+| "App not installed as package conflicts…" (another app named in the adb line) | `INSTALL_FAILED_DUPLICATE_PERMISSION` / `CONFLICTING_PROVIDER` / `SHARED_USER_INCOMPATIBLE` | Another port of a Samsung app claims the same permission, provider or shared user ID | Uninstall the app named in the error, then install again |
+| "Unsafe app blocked" / "App scan recommended" | `INSTALL_FAILED_VERIFICATION_FAILURE` | Play Protect | Tap *More details → Install anyway*, or turn off Play Store → Play Protect → Settings → *Scan apps with Play Protect* while installing |
+| (adb only, Xiaomi/Redmi/POCO) | `INSTALL_FAILED_USER_RESTRICTED` | The phone blocks installs over USB | Developer options → turn on *Install via USB* |
+| "App not installed as package appears to be invalid" | `INSTALL_PARSE_FAILED_…` | Damaged or incomplete download | Check `SHA256SUMS` and download again |
 
 ## App behaviour
 

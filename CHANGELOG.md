@@ -4,6 +4,22 @@ All notable changes to OnePort. The format follows [Keep a Changelog](https://ke
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-20
+
+### Added
+- **My Files now runs on Android 14 and 15** (it needed Android 16). The 17 newer platform APIs it calls go through version-checked backports (`ApiCompat`), and three version checks that Samsung's optimiser had stripped (scroll feedback, audio loudness, S Pen high-contrast text) are restored. Tested on Android 14, 15, 16 and 17: browsing, fast scrolling, copy, delete to Trash, restore and search.
+
+### Fixed
+- **Gallery failed to install on many phones** with `INSTALL_FAILED_MISSING_SHARED_LIBRARY … libOpenCL.so`. One component declared OpenCL as required, and many GPU drivers don't expose it to apps. Every port is now built with Samsung-only libraries marked optional.
+- `install.sh` explains every common install error in plain words. A copy signed by someone else (a stock Samsung APK, another port), which shows on the phone as "package conflicts with an existing package", can now be replaced with `--replace` or after a confirmation.
+- `install.sh` checks for a 64-bit ARM phone and honours `ANDROID_SERIAL` when several devices are connected.
+- My Files now shows its One UI 8 icon instead of the default Android icon.
+- Gallery's *Set as wallpaper* opens the standard Android wallpaper screen; Samsung's Wallpaper and style app isn't available off-Samsung.
+
+### Tested
+- Installs verified on Android 14, 15, 16 and 17 emulators (Google Play images), clean and over v1.0.1.
+- Photo Editor is now built from the public source exactly; its compat dex no longer carries an unused Galaxy AI loader method.
+
 ## [1.0.1] - 2026-10-20
 
 ### Fixed
@@ -45,6 +61,7 @@ First public release. Tested on a Motorola Edge 60 Pro (Android 17).
 - Gallery's thumbnail can be stale after an edit made in another app.
 - An intermittent Gallery delete failure has been reported, but not reproduced.
 
-[Unreleased]: https://github.com/StevenSteel7/OnePort/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/StevenSteel7/OnePort/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/StevenSteel7/OnePort/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/StevenSteel7/OnePort/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/StevenSteel7/OnePort/releases/tag/v1.0.0

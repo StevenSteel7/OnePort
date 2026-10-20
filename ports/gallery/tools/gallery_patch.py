@@ -44,3 +44,18 @@ replace_method('Lcom/samsung/android/gallery/support/library/v0/GedApiCompatImpl
     'sget-object v1, Landroidx/lifecycle/Lifecycle$State;->RESUMED:Landroidx/lifecycle/Lifecycle$State;',
     'invoke-virtual {v0, v1}, Landroidx/lifecycle/Lifecycle$State;->isAtLeast(Landroidx/lifecycle/Lifecycle$State;)Z', 'move-result v0', 'return v0',
     ':plain', 'invoke-virtual {p1}, Landroid/app/Activity;->isFinishing()Z', 'move-result v0', 'xor-int/lit8 v0, v0, 0x1', 'return v0'])
+
+# "Set as wallpaper" targets Samsung's Wallpaper and style app
+# (com.samsung.android.app.dressroom), absent on other phones: the command
+# failed with "No Activity found". Route SetWallpaperCmd's activity starts
+# through samsungcompat.WallpaperCompat, which falls back to the standard
+# WallpaperManager crop-and-set flow.
+p = find('Lcom/samsung/android/gallery/app/controller/externals/SetWallpaperCmd;')
+src = open(p).read()
+src, n1 = re.subn(r'invoke-virtual \{([pv]\d+), ([pv]\d+)\}, Landroid/app/Activity;->startActivity\(Landroid/content/Intent;\)V',
+                  r'invoke-static {\1, \2}, Lsamsungcompat/WallpaperCompat;->start(Landroid/app/Activity;Landroid/content/Intent;)V', src)
+src, n2 = re.subn(r'invoke-virtual \{([pv]\d+), ([pv]\d+), ([pv]\d+)\}, Landroid/app/Activity;->startActivityForResult\(Landroid/content/Intent;I\)V',
+                  r'invoke-static {\1, \2, \3}, Lsamsungcompat/WallpaperCompat;->startForResult(Landroid/app/Activity;Landroid/content/Intent;I)V', src)
+if n1 != 4 or n2 != 3: raise SystemExit(f'SetWallpaperCmd starts: {n1} {n2}')
+open(p, 'w').write(src)
+print('routed', n1 + n2, 'SetWallpaperCmd starts through WallpaperCompat')
