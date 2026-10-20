@@ -1,12 +1,14 @@
 package samsungcompat;
 
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.net.Uri;
+import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 import java.util.ArrayList;
@@ -62,12 +64,42 @@ public final class SecMedia {
 
     private static SQLiteDatabase sDb;
     private static volatile boolean sDirty = true;
+    private static long sGeneration;
     private static ContentObserver sObserver;
 
     private SecMedia() {}
 
     public static boolean handles(Uri uri) {
         return uri != null && AUTHORITY.equals(uri.getAuthority());
+    }
+
+    /**
+     * Samsung's secmedia provider treats is_trashed as a database flag before Gallery moves the file itself.
+     * AOSP MediaProvider instead interprets the same update as a filesystem move and rejects it on the generic
+     * files collection. Keep that transient flag in the mirror so Gallery can complete its own trash operation.
+     */
+    public static boolean handlesTrashedUpdate(Uri uri, ContentValues values) {
+        if (uri == null || values == null || !values.containsKey("is_trashed")
+                || !"media".equals(uri.getAuthority())) return false;
+        java.util.List<String> path = uri.getPathSegments();
+        return path.size() >= 2 && "file".equals(path.get(1));
+    }
+
+    public static synchronized int updateTrashed(ContentResolver cr, Uri uri, ContentValues values, Bundle extras) {
+        sync(cr);
+        Bundle a = extras != null ? extras : Bundle.EMPTY;
+        String selection = a.getString(ContentResolver.QUERY_ARG_SQL_SELECTION);
+        String[] args = a.getStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS);
+        java.util.List<String> path = uri.getPathSegments();
+        if ((selection == null || selection.isEmpty()) && path.size() >= 3 && path.get(2).matches("\\d+")) {
+            selection = "_id=?";
+            args = new String[] {path.get(2)};
+        }
+        ContentValues mirrorValues = new ContentValues();
+        mirrorValues.put("is_trashed", values.getAsInteger("is_trashed"));
+        int count = sDb.update("files", mirrorValues, selection, args);
+        Log.i(TAG, "mirror is_trashed update [" + count + "] " + selection);
+        return count;
     }
 
     public static synchronized Cursor query(ContentResolver cr, Uri uri, String[] projection, String selection, String[] args, String sort) {
@@ -238,6 +270,15 @@ public final class SecMedia {
                     String def = FILES_DEFAULTS.get(c);
                     if (def != null) sDb.execSQL("UPDATE files SET " + c + " = " + def);
                 }
+                // Gallery suppresses MediaStore observer events when this data stamp does not change. Samsung's
+                // provider always exposes one row; an empty table makes SQL string concatenation return NULL.
+                sDb.execSQL("CREATE TABLE IF NOT EXISTS local_metadata (generation_modified INTEGER)");
+                if (!columns("local_metadata").contains("generation_modified")) {
+                    sDb.execSQL("ALTER TABLE local_metadata ADD COLUMN generation_modified INTEGER");
+                }
+                sDb.execSQL("DELETE FROM local_metadata");
+                sDb.execSQL("INSERT INTO local_metadata (generation_modified) VALUES (?)",
+                        new Object[] {++sGeneration});
                 sDb.setTransactionSuccessful();
             } finally {
                 sDb.endTransaction();

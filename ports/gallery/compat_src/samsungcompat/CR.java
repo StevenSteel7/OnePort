@@ -107,6 +107,18 @@ public final class CR {
         }
     }
 
+    public static int delete(ContentResolver cr, Uri uri, Bundle extras) {
+        if (Trash.handles(uri)) {
+            Trash.notifyChanged(cr);
+            return 0;
+        }
+        try {
+            return cr.delete(uri, extras);
+        } catch (IllegalArgumentException e) {
+            return unknownProvider(e, 0);
+        }
+    }
+
     public static Uri insert(ContentResolver cr, Uri uri, ContentValues values) {
         if (Trash.handles(uri)) return null;
         try {
@@ -118,8 +130,24 @@ public final class CR {
 
     public static int update(ContentResolver cr, Uri uri, ContentValues values, String where, String[] args) {
         if (Trash.handles(uri)) return 0;
+        if (SecMedia.handlesTrashedUpdate(uri, values)) {
+            Bundle extras = new Bundle();
+            extras.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, where);
+            extras.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, args);
+            return SecMedia.updateTrashed(cr, uri, values, extras);
+        }
         try {
             return cr.update(uri, values, where, args);
+        } catch (IllegalArgumentException e) {
+            return unknownProvider(e, 0);
+        }
+    }
+
+    public static int update(ContentResolver cr, Uri uri, ContentValues values, Bundle extras) {
+        if (Trash.handles(uri)) return 0;
+        if (SecMedia.handlesTrashedUpdate(uri, values)) return SecMedia.updateTrashed(cr, uri, values, extras);
+        try {
+            return cr.update(uri, values, extras);
         } catch (IllegalArgumentException e) {
             return unknownProvider(e, 0);
         }

@@ -222,8 +222,10 @@ CR_WRAP = {
     ('applyBatch', 'Ljava/lang/String;Ljava/util/ArrayList;', '[Landroid/content/ContentProviderResult;'),
     ('bulkInsert', 'Landroid/net/Uri;[Landroid/content/ContentValues;', 'I'),
     ('delete', 'Landroid/net/Uri;Ljava/lang/String;[Ljava/lang/String;', 'I'),
+    ('delete', 'Landroid/net/Uri;Landroid/os/Bundle;', 'I'),
     ('insert', 'Landroid/net/Uri;Landroid/content/ContentValues;', 'Landroid/net/Uri;'),
     ('update', 'Landroid/net/Uri;Landroid/content/ContentValues;Ljava/lang/String;[Ljava/lang/String;', 'I'),
+    ('update', 'Landroid/net/Uri;Landroid/content/ContentValues;Landroid/os/Bundle;', 'I'),
     ('registerContentObserver', 'Landroid/net/Uri;ZLandroid/database/ContentObserver;', 'V'),
     ('unregisterContentObserver', 'Landroid/database/ContentObserver;', 'V'),
 }

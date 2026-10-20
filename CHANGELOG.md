@@ -4,6 +4,12 @@ All notable changes to OnePort. The format follows [Keep a Changelog](https://ke
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-20
+
+### Fixed
+- Gallery now refreshes when images are deleted outside Gallery instead of continuing to show stale entries.
+- Gallery delete and Recycle bin operations no longer fail on Android 17 when MediaStore rejects Samsung's transient `is_trashed` update.
+
 ## [1.0.0] - 2026-10-19
 
 First public release. Tested on a Motorola Edge 60 Pro (Android 17).
@@ -39,5 +45,6 @@ First public release. Tested on a Motorola Edge 60 Pro (Android 17).
 - Gallery's thumbnail can be stale after an edit made in another app.
 - An intermittent Gallery delete failure has been reported, but not reproduced.
 
-[Unreleased]: https://github.com/StevenSteel7/OnePort/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/StevenSteel7/OnePort/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/StevenSteel7/OnePort/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/StevenSteel7/OnePort/releases/tag/v1.0.0
