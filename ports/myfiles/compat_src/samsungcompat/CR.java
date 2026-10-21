@@ -20,7 +20,7 @@ public final class CR {
     private CR() {}
 
     public static Cursor query(ContentResolver cr, Uri uri, String[] projection, String selection, String[] args, String sort) {
-        if (Trash.handles(uri)) return Trash.query(projection, selection, args, sort);
+        if (Trash.handles(uri)) return Trash.query(cr, projection, selection, args, sort);
         try {
             return cr.query(uri, projection, selection, args, sort);
         } catch (IllegalArgumentException e) {
@@ -31,7 +31,7 @@ public final class CR {
     public static Cursor query(ContentResolver cr, Uri uri, String[] projection, Bundle queryArgs, CancellationSignal signal) {
         if (Trash.handles(uri)) {
             Bundle a = queryArgs != null ? queryArgs : Bundle.EMPTY;
-            return Trash.query(projection, a.getString(ContentResolver.QUERY_ARG_SQL_SELECTION),
+            return Trash.query(cr, projection, a.getString(ContentResolver.QUERY_ARG_SQL_SELECTION),
                     a.getStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS), a.getString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER));
         }
         try {

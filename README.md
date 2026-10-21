@@ -110,7 +110,7 @@ The script checks the phone, installs each app, and grants **All files access** 
 Run these for each APK, in PowerShell or any terminal:
 
 ```sh
-adb install -r -g SamsungGallery_15.9.00.45_OnePort.apk
+adb install -r -g Gallery-1.2.0.apk
 adb shell appops set com.sec.android.gallery3d MANAGE_EXTERNAL_STORAGE allow
 adb shell appops set com.sec.android.gallery3d MANAGE_MEDIA allow
 ```
@@ -140,12 +140,12 @@ The package names are in [the apps table](#the-apps).
 
 **My Files**
 - Browsing and all file operations.
-- Recycle bin: move to bin, restore, empty, and the 30-day auto-expiry.
+- Recycle bin: move to bin, restore, empty, and the 30-day auto-expiry. Photos and videos go to the bin it shares with Gallery.
 
 **Gallery**
 - Timeline, albums, viewer and video playback.
 - Favourites.
-- Recycle bin: delete, restore, empty, 30-day expiry.
+- Recycle bin: delete, restore, empty and 30-day expiry, run by Android's own trash and shared with My Files. Sorted by days left; items about to expire are shown in red.
 - **Edit**, which opens Photo Editor and refreshes the photo afterwards.
 
 **Photo Editor**
@@ -176,7 +176,7 @@ The package names are in [the apps table](#the-apps).
 ### ⚠️ Known issues
 
 - Gallery can show the **old thumbnail** after a photo is edited in *another* app. Edits started from Gallery refresh correctly.
-- Gallery **delete occasionally fails**. This was reported once and hasn't been reproduced. If it happens to you, please run `adb logcat -d > fail.log` right away and attach the file to an issue.
+- Videos in Gallery's Recycle bin show **0:00** as their length.
 - **HEIC photos and very large photos (50 MP+)** are untested in Photo Editor. The editor decodes the preview at full size, so these may be slow or run out of memory.
 
 The full, current list is in [the issue tracker](https://github.com/StevenSteel7/OnePort/issues).

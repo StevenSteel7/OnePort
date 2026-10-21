@@ -52,7 +52,7 @@ final class Trash {
         return uri != null && AUTHORITY.equals(uri.getAuthority());
     }
 
-    static synchronized Cursor query(String[] projection, String selection, String[] selectionArgs, String sortOrder) {
+    static synchronized Cursor query(ContentResolver cr, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
         SQLiteDatabase db = SQLiteDatabase.create(null);
         try {
             db.execSQL("CREATE TABLE files (_id INTEGER PRIMARY KEY, _data TEXT, original_path TEXT, _display_name TEXT,"
@@ -86,6 +86,7 @@ final class Trash {
                         }
                     }
                 }
+                MediaTrash.addTrashedMedia(cr, db);
                 db.setTransactionSuccessful();
             } finally {
                 db.endTransaction();

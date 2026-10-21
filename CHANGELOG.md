@@ -4,6 +4,34 @@ All notable changes to OnePort. The format follows [Keep a Changelog](https://ke
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-21
+
+### Changed
+- **One Recycle bin for Gallery and My Files, run by Android.** Photos and videos deleted in either app now go to Android's own trash (MediaStore), so both bins show the same items and Android handles the 30-day expiry. Other files deleted in My Files still use My Files' own bin.
+- **APK file names are now `<App>-<release>.apk`**, for example `Gallery-1.2.0.apk`. An app that doesn't change in a later release keeps its older file name. `install.sh` picks up the newest file of each app.
+- Photo Editor and Video Player are unchanged since 1.1.0; only their file names are new.
+
+### Added
+- Gallery's Recycle bin is sorted by days left (most at the top), and items with 1 day or less left are shown in red.
+- Gallery asks once for **Media management** access. With it, deletes, restores and emptying the bin don't show Android's "Allow Gallery to…" confirmation every time.
+
+### Fixed
+- Gallery: delete failed with "Couldn't delete" on phones without Samsung's system trash service.
+- Gallery: the Recycle bin crashed when opened.
+- Gallery: thumbnails, full-size previews and video playback now work for items in the Recycle bin.
+- Gallery: dismissing Android's delete confirmation showed "Couldn't delete" about two minutes later; it now reports at once.
+- Gallery: the on-screen back arrow did nothing on Android 15 and newer.
+
+### Upgrading from 1.1.0
+- Items that were already in Gallery's Recycle bin from 1.1.0 aren't shown in the new bin. The files are still on the phone, in the hidden folder `Android/.Trash/com.sec.android.gallery3d`. To keep any of them, restore them in 1.1.0 before updating, or copy them out of that folder with a file manager afterwards.
+
+### Known issues
+- Videos in Gallery's Recycle bin show 0:00 as their length.
+
+### Tested
+- Motorola Edge 60 Pro (Android 17) and Motorola Edge 50 Pro (Android 16).
+- Android 14 emulator: My Files delete to bin, bin listing, restore and permanent delete; Gallery launch, Recycle bin and back arrow.
+
 ## [1.1.0] - 2026-10-20
 
 ### Added

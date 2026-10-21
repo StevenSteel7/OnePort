@@ -86,7 +86,6 @@ public final class SecMedia {
     }
 
     public static synchronized int updateTrashed(ContentResolver cr, Uri uri, ContentValues values, Bundle extras) {
-        sync(cr);
         Bundle a = extras != null ? extras : Bundle.EMPTY;
         String selection = a.getString(ContentResolver.QUERY_ARG_SQL_SELECTION);
         String[] args = a.getStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS);
@@ -95,8 +94,14 @@ public final class SecMedia {
             selection = "_id=?";
             args = new String[] {path.get(2)};
         }
+        Integer requested = values.getAsInteger("is_trashed");
+        if (requested != null && MediaStoreTrash.setTrashed(cr, uri, selection, args, requested != 0)) {
+            sDirty = true;
+            return 1;
+        }
+        sync(cr);
         ContentValues mirrorValues = new ContentValues();
-        mirrorValues.put("is_trashed", values.getAsInteger("is_trashed"));
+        mirrorValues.put("is_trashed", requested);
         int count = sDb.update("files", mirrorValues, selection, args);
         Log.i(TAG, "mirror is_trashed update [" + count + "] " + selection);
         return count;

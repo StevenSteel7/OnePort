@@ -68,7 +68,7 @@ scripts/build.sh <port> [--repatch] [--install]
 | `--repatch` | Decode the original APK again and re-run the patchers (needed after changing `tools/*.py`) |
 | `--install` | `adb install` the result and grant its app-ops |
 
-The output goes to `dist/<App>_<version>_OnePort.apk`.
+The output goes to `dist/<App>-<release>.apk` (for example `dist/Gallery-1.2.0.apk`), named after the OnePort release that last changed that app.
 
 ## Repository layout
 

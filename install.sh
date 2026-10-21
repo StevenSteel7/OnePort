@@ -18,15 +18,20 @@ pkg_of() { case $1 in
   photoeditor) echo com.sec.android.mimage.photoretouching ;;
   video) echo com.samsung.android.video ;;
 esac; }
+# APKs are named <App>-<release>.apk; an app unchanged in a release keeps its older file name.
 glob_of() { case $1 in
-  myfiles) echo 'SamsungMyFiles_*_OnePort.apk' ;;
-  gallery) echo 'SamsungGallery_*_OnePort.apk' ;;
-  photoeditor) echo 'SamsungPhotoEditor_*_OnePort.apk' ;;
-  video) echo 'SamsungVideo_*_OnePort.apk' ;;
+  myfiles) echo 'MyFiles-[0-9]*.apk' ;;
+  gallery) echo 'Gallery-[0-9]*.apk' ;;
+  photoeditor) echo 'PhotoEditor-[0-9]*.apk' ;;
+  video) echo 'Video-[0-9]*.apk' ;;
 esac; }
 minsdk_of() { case $1 in gallery) echo 30 ;; myfiles) echo 34 ;; video) echo 37 ;; *) echo 36 ;; esac; }
 android_of() { case $1 in 30) echo 11 ;; 34) echo 14 ;; 35) echo 15 ;; 36) echo 16 ;; 37) echo 17 ;; *) echo "API $1" ;; esac; }
-find_apk() { for d in . dist; do for f in $d/$(glob_of "$1"); do [ -f "$f" ] && { echo "$f"; return; }; done; done; }
+# The newest version wins if several downloads of one app are lying around.
+find_apk() { for d in . dist; do
+  f=$(for g in $d/$(glob_of "$1"); do [ -f "$g" ] && echo "$g"; done | sort -t- -k2 -V | tail -n 1)
+  [ -n "$f" ] && { echo "$f"; return; }
+done; }
 die() { echo "error: $*" >&2; exit 1; }
 
 replace=0

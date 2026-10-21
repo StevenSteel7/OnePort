@@ -2,6 +2,7 @@ package samsungcompat;
 
 import android.content.ContentProviderResult;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.database.MatrixCursor;
@@ -10,94 +11,55 @@ import android.database.sqlite.SQLiteException;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Process;
-import android.webkit.MimeTypeMap;
-import java.io.File;
-import java.nio.file.Files;
+import android.provider.MediaStore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Stand-in for Samsung's system "sectrash" provider, which does not exist on non-Samsung phones.
- *
- * My Files moves a trashed item to
- *   <volume>/Android/.Trash/com.sec.android.app.myfiles/<uuid>/<deleteTimeMs>/<original parent>/.!%#@$/<name>
- * and does the actual file moves/deletes itself; the provider only indexes them. So the index is rebuilt
- * from disk on every query (into an in-memory SQLite table, so the app's own SQL selections work unchanged),
- * and row deletes/updates are no-ops.
- *
- * Samsung's system service also empties expired items after 30 days; that is done here, on each listing:
- * a delete-time folder whose items have expired is removed as a whole. Items that were already older than
- * 30 days when this was first installed count from that day instead (recorded in EXPIRY_START_FILE),
- * so the backlog is not wiped the first time it runs.
- */
+/** MediaStore-backed replacement for Samsung's missing "sectrash" provider. */
 final class Trash {
     static final String AUTHORITY = "sectrash";
     static final Uri FILES = Uri.parse("content://sectrash/files");
-    private static final String TRASH_DIR = "Android/.Trash/com.sec.android.app.myfiles";
-    private static final String MARKER = ".!%#@$";
     private static final long RETENTION_MS = 30L * 24 * 60 * 60 * 1000;
-    private static final String EXPIRY_START_FILE = ".compat_expiry_start";
-    private static long expiryStart;
     private static final Pattern MISSING_COLUMN = Pattern.compile("no such column: ([\\w.]+)");
-    // the system refuses observers on an authority with no provider, so sectrash observers live here
     private static final List<ContentObserver> observers = new CopyOnWriteArrayList<>();
 
     private Trash() {}
+
+    private static final String DEFAULT_SORT = "date_deleted DESC, _id DESC";
+
+    private static boolean isAggregate(String[] projection) {
+        if (projection == null) return false;
+        for (String column : projection) if (column != null && column.contains("(")) return true;
+        return false;
+    }
 
     static boolean handles(Uri uri) {
         return uri != null && AUTHORITY.equals(uri.getAuthority());
     }
 
-    static synchronized Cursor query(String[] projection, String selection, String[] selectionArgs, String sortOrder) {
-        SQLiteDatabase db = SQLiteDatabase.create(null);
+    static Cursor query(ContentResolver cr, String[] projection, String selection, String[] selectionArgs,
+            String sortOrder) {
+        return query(cr, projection, selection, selectionArgs, null, null, sortOrder, null);
+    }
+
+    static synchronized Cursor query(ContentResolver cr, String[] projection, String selection,
+            String[] selectionArgs, String groupBy, String having, String sortOrder, String limit) {
+        if ((sortOrder == null || sortOrder.isEmpty()) && groupBy == null && !isAggregate(projection)) {
+            // Samsung's sectrash/gallery returns newest deletions first (most days left at the top).
+            sortOrder = DEFAULT_SORT;
+        }
+        SQLiteDatabase db = buildSnapshot(cr);
         try {
-            db.execSQL("CREATE TABLE files (_id INTEGER PRIMARY KEY, _data TEXT, original_path TEXT, _display_name TEXT,"
-                    + " _size INTEGER, mime_type TEXT, date_expires INTEGER, date_deleted INTEGER, date_modified INTEGER,"
-                    + " media_id INTEGER, is_cloud INTEGER, parent INTEGER, is_dir INTEGER, user_id INTEGER, volume_name TEXT)");
-            long now = System.currentTimeMillis();
-            long start = expiryStart();
-            db.beginTransaction();
-            try {
-                for (File volume : volumes()) {
-                    String volumeName = volume.equals(Environment.getExternalStorageDirectory())
-                            ? "external_primary" : volume.getName().toLowerCase();
-                    File[] owners = new File(volume, TRASH_DIR).listFiles();
-                    if (owners == null) continue;
-                    for (File owner : owners) {
-                        File[] times = owner.listFiles();
-                        if (times == null) continue;
-                        for (File time : times) {
-                            long deleted;
-                            try {
-                                deleted = Long.parseLong(time.getName());
-                            } catch (NumberFormatException e) {
-                                continue;
-                            }
-                            long expires = Math.max(deleted, start) + RETENTION_MS;
-                            if (expires <= now) {
-                                deleteRecursively(time);
-                                continue;
-                            }
-                            findMarkers(db, time, time, deleted, expires, volumeName);
-                        }
-                    }
-                }
-                db.setTransactionSuccessful();
-            } finally {
-                db.endTransaction();
-            }
             Cursor c = null;
             for (int attempt = 0; c == null; attempt++) {
                 try {
-                    c = db.query("files", projection, selection, selectionArgs, null, null, sortOrder);
+                    c = db.query("files", projection, selection, selectionArgs, groupBy, having, sortOrder, limit);
                 } catch (SQLiteException e) {
-                    // Samsung's table has more columns than we fill in; add any the app asks for as NULL
                     Matcher m = MISSING_COLUMN.matcher(String.valueOf(e.getMessage()));
-                    if (attempt > 20 || !m.find()) throw e;
+                    if (attempt > 40 || !m.find()) throw e;
                     db.execSQL("ALTER TABLE files ADD COLUMN " + m.group(1));
                 }
             }
@@ -111,8 +73,19 @@ final class Trash {
         }
     }
 
+    static Cursor query(ContentResolver cr, String[] projection, Bundle args) {
+        Bundle a = args != null ? args : Bundle.EMPTY;
+        return query(cr, projection,
+                a.getString(ContentResolver.QUERY_ARG_SQL_SELECTION),
+                a.getStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS),
+                a.getString(ContentResolver.QUERY_ARG_SQL_GROUP_BY),
+                a.getString(ContentResolver.QUERY_ARG_SQL_HAVING),
+                a.getString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER),
+                a.getString(ContentResolver.QUERY_ARG_SQL_LIMIT));
+    }
+
     static Bundle call(ContentResolver cr, String method) {
-        notifyChanged(cr);   // "scan" after a move to trash: listing is live, just tell observers to reload
+        notifyChanged(cr);
         return new Bundle();
     }
 
@@ -121,6 +94,31 @@ final class Trash {
         for (int i = 0; i < count; i++) results[i] = new ContentProviderResult(1);
         notifyChanged(cr);
         return results;
+    }
+
+    static Uri insert(ContentResolver cr, Uri uri, ContentValues values) {
+        notifyChanged(cr);
+        Long mediaId = values != null ? values.getAsLong("sec_media_id") : null;
+        long id = mediaId != null ? mediaId : System.currentTimeMillis();
+        return uri.buildUpon().appendPath(Long.toString(id)).build();
+    }
+
+    static int update(ContentResolver cr, Uri uri, ContentValues values, String where, String[] args) {
+        notifyChanged(cr);
+        return 1;
+    }
+
+    static int delete(ContentResolver cr, Uri uri, String where, String[] args) {
+        String restored = uri != null ? uri.getQueryParameter("restored") : null;
+        ArrayList<Long> ids = selectIds(cr, where, args);
+        boolean ok;
+        if ("true".equals(restored)) {
+            ok = ids.isEmpty() || MediaStoreTrash.setTrashedIds(cr, ids, false);
+        } else {
+            ok = ids.isEmpty() || MediaStoreTrash.deleteIds(cr, ids);
+        }
+        if (ok) notifyChanged(cr);
+        return ok ? Math.max(1, ids.size()) : 0;
     }
 
     static void register(ContentObserver observer) {
@@ -135,91 +133,104 @@ final class Trash {
         for (ContentObserver o : observers) o.dispatchChange(false, FILES);
     }
 
-    private static List<File> volumes() {
-        List<File> out = new ArrayList<>();
-        out.add(Environment.getExternalStorageDirectory());
-        File[] mounted = new File("/storage").listFiles();
-        if (mounted != null) {
-            for (File f : mounted) {
-                if (!f.getName().equals("emulated") && !f.getName().equals("self")) out.add(f);
+    private static SQLiteDatabase buildSnapshot(ContentResolver cr) {
+        SQLiteDatabase db = SQLiteDatabase.create(null);
+        db.execSQL("CREATE TABLE files ("
+                + "_id INTEGER, _data TEXT, original_path TEXT, _display_name TEXT, title TEXT,"
+                + "title_hash TEXT, _size INTEGER, mime_type TEXT, date_expires INTEGER, date_deleted INTEGER,"
+                + "date_modified INTEGER, media_id INTEGER, sec_media_id INTEGER, is_cloud INTEGER, parent INTEGER,"
+                + "is_dir INTEGER, user_id INTEGER, volume_name TEXT, media_type INTEGER, width INTEGER, height INTEGER,"
+                + "duration INTEGER, orientation INTEGER, orientation_tag INTEGER, cloud_server_id TEXT, extra TEXT,"
+                + "delete_package_name TEXT, original_file_hash TEXT, cloud_thumb_path TEXT, is_trashed INTEGER)");
+
+        // Rows go in newest-deletion first and _id is not the rowid, so plain scans (Gallery's grid uses
+        // group_concat(_id), which ignores ORDER BY) list the most days left first.
+        Cursor c = MediaStoreTrash.queryTrashed(cr);
+        if (c == null) return db;
+        try {
+            int id = c.getColumnIndex(MediaStore.MediaColumns._ID);
+            int data = c.getColumnIndex(MediaStore.MediaColumns.DATA);
+            int name = c.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME);
+            int size = c.getColumnIndex(MediaStore.MediaColumns.SIZE);
+            int mime = c.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE);
+            int expires = c.getColumnIndex(MediaStore.MediaColumns.DATE_EXPIRES);
+            int modified = c.getColumnIndex(MediaStore.MediaColumns.DATE_MODIFIED);
+            int type = c.getColumnIndex(MediaStore.Files.FileColumns.MEDIA_TYPE);
+            int width = c.getColumnIndex(MediaStore.MediaColumns.WIDTH);
+            int height = c.getColumnIndex(MediaStore.MediaColumns.HEIGHT);
+            int duration = c.getColumnIndex(MediaStore.MediaColumns.DURATION);
+            int orientation = c.getColumnIndex(MediaStore.Images.ImageColumns.ORIENTATION);
+            int volume = c.getColumnIndex(MediaStore.MediaColumns.VOLUME_NAME);
+            int relative = c.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH);
+            db.beginTransaction();
+            try {
+                while (c.moveToNext()) {
+                    long rowId = c.getLong(id);
+                    String display = string(c, name);
+                    String volumeName = string(c, volume);
+                    String relativePath = string(c, relative);
+                    String original = originalPath(volumeName, relativePath, display);
+                    long expiry = epochMillis(number(c, expires));
+                    long deleted = expiry > 0 ? Math.max(0, expiry - RETENTION_MS) : System.currentTimeMillis();
+                    String extra = MediaStoreTrash.restoreExtra(relativePath, string(c, mime), number(c, size));
+                    db.execSQL("INSERT OR REPLACE INTO files VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                            new Object[] {rowId, string(c, data), original, display, baseName(display), display,
+                                    number(c, size), string(c, mime), expiry, deleted, number(c, modified), rowId,
+                                    rowId, 1, 0, 0, 0, volumeName, number(c, type), number(c, width),
+                                    number(c, height), number(c, duration), number(c, orientation), 0, null, extra,
+                                    "N/A", null, null, 1});
+                }
+                db.setTransactionSuccessful();
+            } finally {
+                db.endTransaction();
             }
+        } finally {
+            c.close();
+        }
+        return db;
+    }
+
+    private static ArrayList<Long> selectIds(ContentResolver cr, String where, String[] args) {
+        ArrayList<Long> out = new ArrayList<>();
+        SQLiteDatabase db = buildSnapshot(cr);
+        try (Cursor c = db.query("files", new String[] {"media_id"}, where, args, null, null, null)) {
+            while (c.moveToNext()) out.add(c.getLong(0));
+        } catch (Exception ignored) {
+        } finally {
+            db.close();
         }
         return out;
     }
 
-    /** Walk the mirrored original-path folders under one delete-time dir, indexing the contents of each marker dir. */
-    private static void findMarkers(SQLiteDatabase db, File timeDir, File dir, long deleted, long expires, String volumeName) {
-        File[] children = dir.listFiles();
-        if (children == null) return;
-        for (File child : children) {
-            if (!child.isDirectory()) continue;
-            if (child.getName().equals(MARKER)) {
-                String originalParent = dir.getAbsolutePath().substring(timeDir.getAbsolutePath().length());
-                File[] items = child.listFiles();
-                if (items == null) continue;
-                for (File item : items) add(db, item, originalParent + "/" + item.getName(), deleted, expires, 0, volumeName);
-            } else {
-                findMarkers(db, timeDir, child, deleted, expires, volumeName);
-            }
+    private static long number(Cursor c, int index) {
+        return index >= 0 && !c.isNull(index) ? c.getLong(index) : 0;
+    }
+
+    private static String string(Cursor c, int index) {
+        return index >= 0 && !c.isNull(index) ? c.getString(index) : null;
+    }
+
+    private static long epochMillis(long value) {
+        return value > 0 && value < 100000000000L ? value * 1000L : value;
+    }
+
+    private static String originalPath(String volume, String relative, String name) {
+        String root = "external_primary".equals(volume)
+                ? Environment.getExternalStorageDirectory().getAbsolutePath()
+                : "/storage/" + (volume == null ? "emulated/0" : volume);
+        StringBuilder out = new StringBuilder(root);
+        if (relative != null && !relative.isEmpty()) {
+            if (out.charAt(out.length() - 1) != '/') out.append('/');
+            out.append(relative);
         }
+        if (out.charAt(out.length() - 1) != '/') out.append('/');
+        return out.append(name == null ? "" : name).toString();
     }
 
-    /** Index a trashed file or folder (recursively); returns its total size. */
-    private static long add(SQLiteDatabase db, File f, String originalPath, long deleted, long expires, long parent, String volumeName) {
-        long id = id(f);
-        boolean dir = f.isDirectory();
-        long size = 0;
-        if (dir) {
-            File[] children = f.listFiles();
-            if (children != null) {
-                for (File c : children) size += add(db, c, originalPath + "/" + c.getName(), deleted, expires, id, volumeName);
-            }
-        } else {
-            size = f.length();
-        }
-        db.execSQL("INSERT OR REPLACE INTO files VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", new Object[] {
-                id, f.getAbsolutePath(), originalPath, f.getName(), size, dir ? null : mimeType(f.getName()),
-                expires, deleted, f.lastModified() / 1000, 0, 1, parent, dir ? 1 : 0,
-                Process.myUid() / 100000, volumeName});
-        return size;
-    }
-
-    /** When auto-expiry started on this phone; created on first use. */
-    private static long expiryStart() {
-        if (expiryStart != 0) return expiryStart;
-        File f = new File(new File(Environment.getExternalStorageDirectory(), TRASH_DIR), EXPIRY_START_FILE);
-        try {
-            expiryStart = Long.parseLong(new String(Files.readAllBytes(f.toPath())).trim());
-        } catch (Exception e) {
-            expiryStart = System.currentTimeMillis();
-            try {
-                f.getParentFile().mkdirs();
-                Files.write(f.toPath(), Long.toString(expiryStart).getBytes());
-            } catch (Exception ignored) {
-                // can't persist: expire relative to this session only, still never earlier than now + 30 days
-            }
-        }
-        return expiryStart;
-    }
-
-    private static void deleteRecursively(File f) {
-        File[] children = f.isDirectory() && !Files.isSymbolicLink(f.toPath()) ? f.listFiles() : null;
-        if (children != null) for (File c : children) deleteRecursively(c);
-        f.delete();
-    }
-
-    private static long id(File f) {
-        long h = 1125899906842597L;
-        String s = f.getAbsolutePath();
-        for (int i = 0; i < s.length(); i++) h = 31 * h + s.charAt(i);
-        h &= Long.MAX_VALUE;
-        return h == 0 ? 1 : h;
-    }
-
-    private static String mimeType(String name) {
+    private static String baseName(String name) {
+        if (name == null) return null;
         int dot = name.lastIndexOf('.');
-        String type = dot < 0 ? null : MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substring(dot + 1).toLowerCase());
-        return type != null ? type : "application/octet-stream";
+        return dot > 0 ? name.substring(0, dot) : name;
     }
 
     private static Cursor copy(Cursor c) {
