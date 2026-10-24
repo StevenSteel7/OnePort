@@ -107,6 +107,69 @@ public final class SecMedia {
         return count;
     }
 
+    // ---- hidden albums ----
+    // Samsung's provider keeps files.is_hide per row (1 = hidden album, -1 = explicitly shown). MediaStore has no such
+    // column and the mirror below is rebuilt on every MediaStore change, so remember the choice per bucket_id in
+    // SharedPreferences and re-apply it after each rebuild.
+
+    private static final String HIDE_PREFS = "secmedia_hide";
+    private static final Pattern BUCKET_WHERE = Pattern.compile("bucket_id\\s*=\\s*(-?\\d+)");
+
+    /** Gallery's "hide album" write: is_hide on files, which stock MediaStore rejects as an invalid column. */
+    public static boolean handlesHideUpdate(Uri uri, ContentValues values) {
+        return uri != null && values != null && values.containsKey("is_hide")
+                && ("media".equals(uri.getAuthority()) || handles(uri));
+    }
+
+    public static synchronized int updateHide(ContentResolver cr, ContentValues values, String where, String[] args) {
+        Integer state = values.getAsInteger("is_hide");
+        if (state == null) state = 0;
+        sync(cr);
+        int count = 0;
+        try {
+            ContentValues row = new ContentValues();
+            row.put("is_hide", state);
+            if (!columns("files").contains("is_hide")) addColumn("files", "is_hide");
+            count = sDb.update("files", row, where, args);
+        } catch (RuntimeException e) {
+            Log.e(TAG, "is_hide mirror update failed: " + where, e);
+        }
+        Matcher m = where == null ? null : BUCKET_WHERE.matcher(where);
+        android.content.Context context = appContext();
+        if (m != null && m.find() && context != null) {
+            android.content.SharedPreferences.Editor ed = context.getSharedPreferences(HIDE_PREFS, 0).edit();
+            if (state == 0) ed.remove(m.group(1)); else ed.putInt(m.group(1), state);
+            ed.apply();
+        } else {
+            Log.w(TAG, "is_hide update without a bucket_id, not persisted: " + where);
+        }
+        Log.i(TAG, "is_hide=" + state + " [" + count + "] " + where);
+        try {
+            cr.notifyChange(MS_FILES, null);   // makes Gallery reload its album list
+        } catch (RuntimeException ignored) {}
+        return Math.max(count, 1);
+    }
+
+    private static void applyHidden() {
+        android.content.Context context = appContext();
+        if (context == null || !columns("files").contains("is_hide")) return;
+        for (Map.Entry<String, ?> e : context.getSharedPreferences(HIDE_PREFS, 0).getAll().entrySet()) {
+            if (!(e.getValue() instanceof Integer)) continue;
+            sDb.execSQL("UPDATE files SET is_hide = ? WHERE bucket_id = ?", new Object[] {e.getValue(), e.getKey()});
+        }
+    }
+
+    private static android.content.Context appContext() {
+        try {
+            Class<?> cls = Class.forName("com.samsung.android.gallery.support.utils.AppResources");
+            Object value = cls.getMethod("getAppContext").invoke(null);
+            return value instanceof android.content.Context ? (android.content.Context) value : null;
+        } catch (Exception e) {
+            Log.e(TAG, "Gallery application context unavailable", e);
+            return null;
+        }
+    }
+
     public static synchronized Cursor query(ContentResolver cr, Uri uri, String[] projection, String selection, String[] args, String sort) {
         String path = uri.getPath() == null ? "" : uri.getPath();
         if (!path.startsWith("/raw_sql")) {
@@ -199,6 +262,7 @@ public final class SecMedia {
         sDb.execSQL("ALTER TABLE " + table + " ADD COLUMN " + col);
         if (def != null) sDb.execSQL("UPDATE " + table + " SET " + col + " = " + def);
         addedColumns(table).add(col);
+        if ("files".equals(table) && "is_hide".equals(col)) applyHidden();
     }
 
     private static final Map<String, Set<String>> sAdded = new HashMap<>();
@@ -222,6 +286,22 @@ public final class SecMedia {
         return out;
     }
 
+    /**
+     * MediaStore's default column list for the files table leaves out is_favorite, so the mirror would report no
+     * favourites at all (and Gallery's Favourites album stayed empty). Ask for it explicitly.
+     */
+    private static String[] mirrorProjection(ContentResolver cr) {
+        try (Cursor probe = cr.query(MS_FILES, null, MediaStore.MediaColumns._ID + "=0", null, null)) {
+            if (probe == null) return null;
+            java.util.List<String> cols = new ArrayList<>(java.util.Arrays.asList(probe.getColumnNames()));
+            if (!cols.contains(MediaStore.MediaColumns.IS_FAVORITE)) cols.add(MediaStore.MediaColumns.IS_FAVORITE);
+            return cols.toArray(new String[0]);
+        } catch (RuntimeException e) {
+            Log.w(TAG, "mirror projection probe failed", e);
+            return null;
+        }
+    }
+
     // ---- MediaStore mirror ----
 
     private static void sync(ContentResolver cr) {
@@ -234,7 +314,7 @@ public final class SecMedia {
         }
         if (!sDirty) return;
         sDirty = false;
-        try (Cursor src = cr.query(MS_FILES, null,
+        try (Cursor src = cr.query(MS_FILES, mirrorProjection(cr),
                 MediaStore.Files.FileColumns.MEDIA_TYPE + " IN (1,3)", null, null)) {
             if (src == null) return;
             String[] cols = src.getColumnNames();
@@ -275,6 +355,7 @@ public final class SecMedia {
                     String def = FILES_DEFAULTS.get(c);
                     if (def != null) sDb.execSQL("UPDATE files SET " + c + " = " + def);
                 }
+                applyHidden();
                 // Gallery suppresses MediaStore observer events when this data stamp does not change. Samsung's
                 // provider always exposes one row; an empty table makes SQL string concatenation return NULL.
                 sDb.execSQL("CREATE TABLE IF NOT EXISTS local_metadata (generation_modified INTEGER)");

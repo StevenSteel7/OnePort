@@ -223,3 +223,65 @@ replace_method('Lcom/samsung/android/gallery/module/utils/BlackboardUtils;', 'pu
     'const-string v1, "command://simulateUserKey"',
     'invoke-virtual {p0, v1, v0}, ' + BB + '->post(Ljava/lang/String;Ljava/lang/Object;)V',
     'return-void'])
+
+# Back gesture / Back key. Gallery targets SDK 37, so the system never calls Activity.onBackPressed any more; back only
+# reaches the app through OnBackInvokedCallbacks. Gallery registers its own only when
+# PredictiveBackDelegate.ENABLE_ON_BACK_INVOKED_CALLBACK is true, which is SdkConfig.atLeast(SEM.V) (One UI 7). Off
+# Samsung it was false, so with an album selected back skipped "exit selection mode" and closed the app. Turn it on
+# from API 35, the same level at which values-v35 opts the app into OnBackInvokedCallback.
+replace_method('Lcom/samsung/android/gallery/widget/predictiveback/PredictiveBackDelegate;', '<clinit>()V', [
+    '.locals 2',
+    'sget-object v0, Lcom/samsung/android/gallery/support/config/SdkConfig$SEM;->V:Lcom/samsung/android/gallery/support/config/SdkConfig$SEM;',
+    'invoke-static {v0}, Lcom/samsung/android/gallery/support/config/SdkConfig;->atLeast(Lcom/samsung/android/gallery/support/config/SdkConfig$SEM;)Z',
+    'move-result v0',
+    'if-nez v0, :enable',
+    'sget v0, Landroid/os/Build$VERSION;->SDK_INT:I',
+    'const/16 v1, 0x23',
+    'if-lt v0, v1, :disable',
+    ':enable',
+    'const/4 v0, 0x1',
+    'goto :store',
+    ':disable',
+    'const/4 v0, 0x0',
+    ':store',
+    'sput-boolean v0, Lcom/samsung/android/gallery/widget/predictiveback/PredictiveBackDelegate;->ENABLE_ON_BACK_INVOKED_CALLBACK:Z',
+    'return-void'])
+
+# Dialog placement: One UI puts alert dialogs at the bottom of a phone, next to the bottom bar (S25: the delete
+# confirmation sits by the Delete icon). Off Samsung they are centred, so bottom-align them in BaseDialog.onCreateDialog.
+def bottom_align_dialogs(body):
+    if 'DialogCompat' in body: raise SystemExit('BaseDialog.onCreateDialog already patched')
+    return body.replace('    return-object p1', '    invoke-static {p1}, Lsamsungcompat/DialogCompat;->alignToBottom(Landroid/app/Dialog;)V\n\n    return-object p1')
+edit_method('Lcom/samsung/android/gallery/widget/dialog/BaseDialog;', 'onCreateDialog(Landroid/os/Bundle;)Landroid/app/Dialog;', bottom_align_dialogs)
+
+# Missing-app dialog (Edit with no Photo Editor, ...): off Samsung there is no Galaxy Store, so Samsung's dialog only says
+# "Can't download right now". Show "Kindly install Galaxy Editor" instead, and bottom-align it like the other dialogs.
+DL_BUILDER = 'Lcom/samsung/android/gallery/widget/dialog/MissingPackage$DownloadBuilder;'
+replace_method(DL_BUILDER, 'createUnsupportedGalaxyAppsGuideDialog(Landroid/content/Context;)Landroid/app/AlertDialog;', [
+    '.locals 4',
+    'iget-object v0, p0, ' + DL_BUILDER + '->mPackageName:Ljava/lang/String;',
+    'iget-object v1, p0, ' + DL_BUILDER + '->mAppName:Ljava/lang/String;',
+    'iget-object v2, p0, ' + DL_BUILDER + '->mCancelListener:Landroid/content/DialogInterface$OnClickListener;',
+    'invoke-static {p1, v0, v1, v2}, Lsamsungcompat/MissingAppDialog;->create(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog;',
+    'move-result-object v0',
+    'invoke-static {v0}, Lsamsungcompat/DialogCompat;->alignToBottom(Landroid/app/Dialog;)V',
+    'return-object v0'])
+
+# "Open in Video Player" (viewer menu) launches Samsung's video app, com.samsung.android.video. Only offer it when that
+# app is installed.
+OIVP = 'Lcom/samsung/android/gallery/app/ui/viewer2/menu/OpenInVideoPlayerMenuItem;'
+replace_method(OIVP, 'lambda$setMenuAttribute$1(Lcom/samsung/android/gallery/module/data/MediaItem;Ljava/lang/String;)Z', [
+    '.locals 2',
+    'invoke-static {}, Lcom/samsung/android/gallery/support/utils/PreferenceFeatures$VideoPlayerFeature;->isOpenInGalleryVideoPlayer()Z',
+    'move-result v0',
+    'if-eqz v0, :no',
+    'const-string v0, "com.samsung.android.video"',
+    'invoke-static {v0}, Lsamsungcompat/PackageCompat;->isInstalled(Ljava/lang/String;)Z',
+    'move-result v0',
+    ':no',
+    'return v0'])
+
+# Favourites album: Gallery only builds the "Favourites" and "Recently" albums in its newer album layout ("MX albums",
+# PreferenceFeatures.MxAlbums = One UI 5.0 or newer), which is off on non-Samsung phones.
+replace_method('Lcom/samsung/android/gallery/support/utils/PreferenceFeatures;', 'lambda$static$16()Z',
+               ['.locals 1', 'const/4 v0, 0x1', 'return v0'])

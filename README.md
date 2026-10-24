@@ -110,7 +110,7 @@ The script checks the phone, installs each app, and grants **All files access** 
 Run these for each APK, in PowerShell or any terminal:
 
 ```sh
-adb install -r -g Gallery-1.2.0.apk
+adb install -r -g Gallery-1.2.1.apk
 adb shell appops set com.sec.android.gallery3d MANAGE_EXTERNAL_STORAGE allow
 adb shell appops set com.sec.android.gallery3d MANAGE_MEDIA allow
 ```

@@ -4,6 +4,32 @@ All notable changes to OnePort. The format follows [Keep a Changelog](https://ke
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-10-25
+
+Gallery only. My Files, Photo Editor and Video Player are unchanged and keep their 1.2.0 files.
+
+### Fixed
+- **Back gesture and Back key with an album selected.** They closed Gallery instead of leaving selection mode. Gallery now handles back itself, as it does on a Galaxy phone.
+- **Hide albums did nothing.** Albums you hide now leave the Albums list and stay hidden after Gallery restarts. Un-hiding brings them back.
+- **The heart (favourite) did nothing** on photos and videos that another app created, such as camera shots, on phones where Gallery didn't have "All files access". It now asks Android to favourite them (no prompt when Media management is on for Gallery).
+
+### Changed
+- **Favourites album.** Gallery's Albums tab now uses the newer One UI layout with Essential albums (Recent and Favourites). Anything you favourite appears in Favourites.
+- **Dialogs sit at the bottom of the screen**, as on One UI: the delete confirmation now appears next to the Delete button instead of in the middle. Phones in portrait only; tablets and landscape are unchanged.
+- **Edit with no Photo Editor installed** now shows "Galaxy Editor not installed. Kindly install Galaxy Editor to edit photos." Before, it said "Can't download right now". Other missing Samsung apps get the same kind of message.
+- **"Open in Video player"** (⋮ menu in the viewer) only appears when Samsung's Video app is installed.
+
+### Upgrading from 1.2.0
+- Install over the old Gallery: `adb install -r -g Gallery-1.2.1.apk`. It uses the same signing key, so your data stays.
+- Hide albums starts empty: nothing was being saved before, so nothing carries over.
+
+### Known issues
+- Videos in Gallery's Recycle bin show 0:00 as their length.
+
+### Tested
+- Motorola Edge 60 Pro (Android 17): select an album then back-swipe, open an album then back, Hide albums on, restart and off, favourite and un-favourite a video, the delete dialog, "Open in Video player" with Samsung Video installed and disabled, and the Favourites album (a favourited video appears in it; un-favouriting empties it).
+- Not tested on a phone: the Albums tab in portrait, the missing Photo Editor message (the wording is in the code but I haven't seen it on screen), the predictive-back animation, and Android 14–16 for these fixes.
+
 ## [1.2.0] - 2026-10-21
 
 ### Changed

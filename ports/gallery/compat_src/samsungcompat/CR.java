@@ -131,6 +131,8 @@ public final class CR {
 
     public static int update(ContentResolver cr, Uri uri, ContentValues values, String where, String[] args) {
         if (Trash.handles(uri)) return Trash.update(cr, uri, values, where, args);
+        if (SecMedia.handlesHideUpdate(uri, values)) return SecMedia.updateHide(cr, values, where, args);
+        if (MediaStoreTrash.handlesFavoriteUpdate(uri, values)) return MediaStoreTrash.updateFavorite(cr, uri, values, where, args);
         if (SecMedia.handlesTrashedUpdate(uri, values)) {
             Bundle extras = new Bundle();
             extras.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, where);
@@ -148,6 +150,16 @@ public final class CR {
         if (Trash.handles(uri)) {
             Bundle a = extras != null ? extras : Bundle.EMPTY;
             return Trash.update(cr, uri, values, a.getString(ContentResolver.QUERY_ARG_SQL_SELECTION),
+                    a.getStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS));
+        }
+        if (MediaStoreTrash.handlesFavoriteUpdate(uri, values)) {
+            Bundle a = extras != null ? extras : Bundle.EMPTY;
+            return MediaStoreTrash.updateFavorite(cr, uri, values, a.getString(ContentResolver.QUERY_ARG_SQL_SELECTION),
+                    a.getStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS));
+        }
+        if (SecMedia.handlesHideUpdate(uri, values)) {
+            Bundle a = extras != null ? extras : Bundle.EMPTY;
+            return SecMedia.updateHide(cr, values, a.getString(ContentResolver.QUERY_ARG_SQL_SELECTION),
                     a.getStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS));
         }
         if (SecMedia.handlesTrashedUpdate(uri, values)) return SecMedia.updateTrashed(cr, uri, values, extras);

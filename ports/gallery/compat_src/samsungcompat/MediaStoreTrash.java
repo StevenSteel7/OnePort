@@ -2,6 +2,7 @@ package samsungcompat;
 
 import android.app.PendingIntent;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -147,6 +148,45 @@ public final class MediaStoreTrash {
         return context != null && requestAndWait(context, uris, trashed ? Operation.TRASH : Operation.RESTORE);
     }
 
+    /** Gallery's favourite toggle: update is_favorite directly through MediaStore. */
+    public static boolean handlesFavoriteUpdate(Uri uri, ContentValues values) {
+        return uri != null && values != null && values.size() == 1 && values.containsKey("is_favorite")
+                && "media".equals(uri.getAuthority());
+    }
+
+    /**
+     * MediaStore silently updates 0 rows when the file isn't Gallery's own (every camera photo), so the heart did
+     * nothing. Fall back to createFavoriteRequest, which MANAGE_MEDIA lets through without a dialog.
+     */
+    public static int updateFavorite(ContentResolver cr, Uri uri, ContentValues values, String where, String[] args) {
+        boolean favorite = Boolean.TRUE.equals(values.getAsBoolean("is_favorite"));
+        try {
+            int count = cr.update(uri, values, where, args);
+            if (count > 0) return count;
+            Log.i(TAG, "direct is_favorite update changed 0 rows, using a favorite request");
+        } catch (RuntimeException e) {
+            Log.i(TAG, "direct is_favorite update rejected (" + e + "), using a favorite request");
+        }
+        ArrayList<Uri> uris = new ArrayList<>();
+        // The Images/Video media tables have no media_type column, so take the type from the URI.
+        int mediaType = uri.getPathSegments().contains("video") ? MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO
+                : MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
+        try (Cursor c = cr.query(uri, new String[] {MediaStore.MediaColumns._ID}, where, args, null)) {
+            if (c != null) while (c.moveToNext()) uris.add(mediaUri(c.getLong(0), mediaType));
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Unable to resolve favorite request", e);
+        }
+        Context context = appContext();
+        if (uris.isEmpty() || context == null) return 0;
+        Operation operation = favorite ? Operation.FAVORITE : Operation.UNFAVORITE;
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+            // The toggle runs on the UI thread, which can't wait for the request; apply it in the background.
+            new Thread(() -> requestAndWait(context, uris, operation), "favorite-request").start();
+            return uris.size();
+        }
+        return requestAndWait(context, uris, operation) ? uris.size() : 0;
+    }
+
     public static boolean deleteIds(ContentResolver cr, List<Long> ids) {
         ArrayList<Uri> uris = urisForIds(cr, ids);
         if (uris.isEmpty()) return true;
@@ -208,6 +248,9 @@ public final class MediaStoreTrash {
             PendingIntent request;
             if (operation == Operation.DELETE) {
                 request = MediaStore.createDeleteRequest(context.getContentResolver(), uris);
+            } else if (operation == Operation.FAVORITE || operation == Operation.UNFAVORITE) {
+                request = MediaStore.createFavoriteRequest(context.getContentResolver(), uris,
+                        operation == Operation.FAVORITE);
             } else {
                 request = MediaStore.createTrashRequest(context.getContentResolver(), uris,
                         operation == Operation.TRASH);
@@ -237,6 +280,13 @@ public final class MediaStoreTrash {
         while (System.currentTimeMillis() < deadline) {
             boolean complete = true;
             for (Uri uri : uris) {
+                if (operation == Operation.FAVORITE || operation == Operation.UNFAVORITE) {
+                    if (isFavorite(cr, uri) != (operation == Operation.FAVORITE)) {
+                        complete = false;
+                        break;
+                    }
+                    continue;
+                }
                 Row row = findById(cr, Long.parseLong(uri.getLastPathSegment()), MediaStore.MATCH_INCLUDE);
                 if (operation == Operation.DELETE ? row != null
                         : row == null || row.trashed != (operation == Operation.TRASH)) {
@@ -248,6 +298,14 @@ public final class MediaStoreTrash {
             Thread.sleep(POLL_MS);
         }
         return false;
+    }
+
+    private static boolean isFavorite(ContentResolver cr, Uri uri) {
+        try (Cursor c = cr.query(uri, new String[] {MediaStore.MediaColumns.IS_FAVORITE}, null, null, null)) {
+            return c != null && c.moveToFirst() && c.getInt(0) != 0;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private static LinkedHashMap<String, Row> rowsForItems(ContentResolver cr, Object[] items, int match) {
@@ -362,7 +420,7 @@ public final class MediaStoreTrash {
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
-    private enum Operation { TRASH, RESTORE, DELETE }
+    private enum Operation { TRASH, RESTORE, DELETE, FAVORITE, UNFAVORITE }
 
     private static final class Row {
         final long id;
