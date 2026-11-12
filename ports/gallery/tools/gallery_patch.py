@@ -285,3 +285,56 @@ replace_method(OIVP, 'lambda$setMenuAttribute$1(Lcom/samsung/android/gallery/mod
 # PreferenceFeatures.MxAlbums = One UI 5.0 or newer), which is off on non-Samsung phones.
 replace_method('Lcom/samsung/android/gallery/support/utils/PreferenceFeatures;', 'lambda$static$16()Z',
                ['.locals 1', 'const/4 v0, 0x1', 'return v0'])
+
+# Edit on a video: StartVideoTrimmerCmd / StartVideoEditorCmd grant the editor READ|WRITE (flags 3) on the video,
+# both via Intent.addFlags and Context.grantUriPermission. Off Samsung, Gallery isn't privileged and may not write
+# media it didn't create, so the WRITE grant threw SecurityException and Gallery crashed. Route both through
+# samsungcompat.UriGrant, which keeps READ (the editors save a copy).
+def read_only_grants(body):
+    body, n1 = re.subn(r'invoke-virtual \{([pv]\d+), ([pv]\d+)\}, Landroid/content/Intent;->addFlags\(I\)Landroid/content/Intent;',
+                       r'invoke-static {\1, \2}, Lsamsungcompat/UriGrant;->addFlags(Landroid/content/Intent;I)Landroid/content/Intent;', body)
+    body, n2 = re.subn(r'invoke-virtual \{([pv]\d+), ([pv]\d+), ([pv]\d+), ([pv]\d+)\}, Landroid/content/Context;->grantUriPermission\(Ljava/lang/String;Landroid/net/Uri;I\)V',
+                       r'invoke-static {\1, \2, \3, \4}, Lsamsungcompat/UriGrant;->grant(Landroid/content/Context;Ljava/lang/String;Landroid/net/Uri;I)V', body)
+    if n1 == 0 or n2 != 1: raise SystemExit(f'video editor grants changed: addFlags={n1} grant={n2}')
+    return body
+for cmd in ('StartVideoTrimmerCmd', 'StartVideoEditorCmd'):
+    edit_method(f'Lcom/samsung/android/gallery/app/controller/externals/{cmd};',
+                'createIntent(Lcom/samsung/android/gallery/module/data/MediaItem;)Landroid/content/Intent;', read_only_grants)
+
+# After a video edit is saved, Gallery's viewer moves to the result (VideoEditorTransitionHandler.handleItemEditedEvent
+# -> waitNewMediaItemLoaded: "saveAsCopy" jumps to the new item, "saveND" reloads the replaced original). But without
+# SUPPORT_APP_TRANSITION (off on non-Samsung phones), isVideoEditingSavedAction() only accepted Video Editor's action,
+# so our editor's com.samsung.app.newtrim.action.saved was parsed and then ignored: the viewer stayed on the old
+# video. Accept the trimmer and slow-motion actions in either mode, as the transition branch already does.
+VERH = 'Lcom/samsung/android/gallery/app/ui/viewer2/container/delegate/editor/VideoEditorReceiveHandler;'
+replace_method(VERH, 'isVideoEditingSavedAction()Z', [
+    '.locals 2',
+    'iget-object v1, p0, ' + VERH + '->mVideoEditingAppAction:Ljava/lang/String;',
+    'invoke-direct {p0}, ' + VERH + '->getVideoEditorSavedActionName()Ljava/lang/String;',
+    'move-result-object v0',
+    'invoke-virtual {v0, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z', 'move-result v0', 'if-nez v0, :yes',
+    'const-string v0, "com.samsung.app.newtrim.action.saved"',
+    'invoke-virtual {v0, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z', 'move-result v0', 'if-nez v0, :yes',
+    'const-string v0, "com.samsung.app.slowmotion.action.saved"',
+    'invoke-virtual {v0, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z', 'move-result v0',
+    'return v0',
+    ':yes', 'const/4 v0, 0x1', 'return v0'])
+# ...and the receiver itself only listened for the trimmer/slow-motion actions with SUPPORT_APP_TRANSITION, so without
+# it the saved broadcast never arrived. Always register the full set, as the transition branch does.
+IF = 'Landroid/content/IntentFilter;'
+body = ['.locals 2', 'new-instance v0, ' + IF, 'invoke-direct {v0}, ' + IF + '-><init>()V',
+        'invoke-direct {p0}, ' + VERH + '->getVideoEditorSavedActionName()Ljava/lang/String;', 'move-result-object v1',
+        'invoke-virtual {v0, v1}, ' + IF + '->addAction(Ljava/lang/String;)V',
+        'invoke-direct {p0}, ' + VERH + '->getVideoEditorCanceledActionName()Ljava/lang/String;', 'move-result-object v1',
+        'invoke-virtual {v0, v1}, ' + IF + '->addAction(Ljava/lang/String;)V']
+for a in ('com.samsung.app.slowmotion.action.saved', 'com.samsung.app.slowmotion.action.canceled',
+          'com.samsung.app.newtrim.action.saved', 'com.samsung.app.newtrim.action.canceled'):
+    body += [f'const-string v1, "{a}"', 'invoke-virtual {v0, v1}, ' + IF + '->addAction(Ljava/lang/String;)V']
+replace_method(VERH, 'createIntentFilterForVideoEditingApps()' + IF, body + ['return-object v0'])
+# The edited item is then looked up in samsungcompat.SecMedia's MediaStore mirror, which only re-syncs after
+# MediaStore's change notification (seen ~9 s late), while the lookup retries for ~1 s, so the viewer didn't move.
+# Mark the mirror stale as soon as an editor reports back.
+def invalidate_mirror(body):
+    end = body.find('\n', body.find('    .locals ')) + 1
+    return body[:end] + '\n    invoke-static {}, Lsamsungcompat/SecMedia;->invalidate()V\n' + body[end:]
+edit_method(VERH, 'parseVideoEditingAppIntent(Landroid/content/Intent;)V', invalidate_mirror)

@@ -12,6 +12,9 @@ set -e
 source ${0:A:h}/env.sh
 
 PORT=$1; shift || true
+if [[ $PORT == videoeditor ]]; then
+  exec $ONEPORT/ports/videoeditor/build.sh "$@"
+fi
 [[ -n $PORT && -f $ONEPORT/ports/$PORT/port.conf ]] || die "usage: scripts/build.sh <$(ls $ONEPORT/ports | tr '\n' '|' | sed 's/|$//')> [--repatch] [--install]"
 for a in "$@"; do case $a in --repatch) REPATCH=1;; --install) INSTALL=1;; *) die "unknown option $a";; esac; done
 

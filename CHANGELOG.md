@@ -4,6 +4,18 @@ All notable changes to OnePort. The format follows [Keep a Changelog](https://ke
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-12
+
+### Added
+- Source-built **Video Editor 1.3.0** for Android 12 and newer: preview, trim, rotate, mute, save a copy, and replace the original after confirmation. Build it with `scripts/build.sh videoeditor`.
+
+### Changed
+- **Video Player** now targets Android 12 (API 31) and newer. Platform back navigation, scrolling, package queries, permissions and newer Java APIs have version-aware compatibility paths.
+- Gallery's video Edit button uses a read-only URI grant, accepts the trimmer's saved event, and refreshes the media mirror before displaying the edited result.
+- `install.sh` recognises Video Editor and permits both video apps on Android 12 and newer.
+
+Emulator coverage and limitations are recorded in [docs/VIDEO_COMPATIBILITY.md](docs/VIDEO_COMPATIBILITY.md).
+
 ## [1.2.1] - 2026-10-25
 
 Gallery only. My Files, Photo Editor and Video Player are unchanged and keep their 1.2.0 files.
@@ -115,7 +127,8 @@ First public release. Tested on a Motorola Edge 60 Pro (Android 17).
 - Gallery's thumbnail can be stale after an edit made in another app.
 - An intermittent Gallery delete failure has been reported, but not reproduced.
 
-[Unreleased]: https://github.com/StevenSteel7/OnePort/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/StevenSteel7/OnePort/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/StevenSteel7/OnePort/compare/v1.2.1...v1.3.0
 [1.1.0]: https://github.com/StevenSteel7/OnePort/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/StevenSteel7/OnePort/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/StevenSteel7/OnePort/releases/tag/v1.0.0

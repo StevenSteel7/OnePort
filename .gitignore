@@ -21,3 +21,12 @@ analysis.json
 
 .DS_Store
 __pycache__/
+
+# Temporary source-editor build output and emulator evidence
+ports/videoeditor/.build/
+test-results/
+
+# Reproducible emulator compatibility test outputs
+/tests/video-compat/harness/build/
+/tests/video-compat/fixtures/
+/tests/video-compat/results/

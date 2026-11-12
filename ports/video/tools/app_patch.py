@@ -190,3 +190,8 @@ replace_method('Lcom/samsung/android/video/player/monitor/receiver/SecureLockRec
     '.locals 0',
     'return-void',
 ])
+
+# Public Android API compatibility down to Android 12 (API31).
+import runpy
+_api_backport = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'api_backport.py')
+runpy.run_path(_api_backport, run_name='__main__')

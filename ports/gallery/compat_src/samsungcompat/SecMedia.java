@@ -302,6 +302,12 @@ public final class SecMedia {
         }
     }
 
+    /**
+     * Force a re-mirror on the next query. MediaStore's change notification can arrive seconds late, and an editor's
+     * "saved" event makes Gallery look up the new item right away (MediaItemRetryLoader gives up after ~1 s).
+     */
+    public static void invalidate() { sDirty = true; }
+
     // ---- MediaStore mirror ----
 
     private static void sync(ContentResolver cr) {

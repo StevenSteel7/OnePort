@@ -3,7 +3,7 @@
 # special access they need ("All files access" and "Media management").
 #
 #   ./install.sh                     install every OnePort APK found next to this script (or in dist/)
-#   ./install.sh gallery photoeditor install only the named apps (myfiles, gallery, photoeditor, video)
+#   ./install.sh gallery photoeditor install only the named apps (myfiles, gallery, photoeditor, video, videoeditor)
 #   ./install.sh --replace ...       if a copy signed by someone else is installed, uninstall it without asking
 #                                    (this deletes that copy's data)
 #
@@ -11,12 +11,13 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-apps="myfiles gallery photoeditor video"
+apps="myfiles gallery photoeditor video videoeditor"
 pkg_of() { case $1 in
   myfiles) echo com.sec.android.app.myfiles ;;
   gallery) echo com.sec.android.gallery3d ;;
   photoeditor) echo com.sec.android.mimage.photoretouching ;;
   video) echo com.samsung.android.video ;;
+  videoeditor) echo com.samsung.app.newtrim ;;
 esac; }
 # APKs are named <App>-<release>.apk; an app unchanged in a release keeps its older file name.
 glob_of() { case $1 in
@@ -24,14 +25,15 @@ glob_of() { case $1 in
   gallery) echo 'Gallery-[0-9]*.apk' ;;
   photoeditor) echo 'PhotoEditor-[0-9]*.apk' ;;
   video) echo 'Video-[0-9]*.apk' ;;
+  videoeditor) echo 'VideoEditor-[0-9]*.apk' ;;
 esac; }
-minsdk_of() { case $1 in gallery) echo 30 ;; myfiles) echo 34 ;; video) echo 37 ;; *) echo 36 ;; esac; }
-android_of() { case $1 in 30) echo 11 ;; 34) echo 14 ;; 35) echo 15 ;; 36) echo 16 ;; 37) echo 17 ;; *) echo "API $1" ;; esac; }
+minsdk_of() { case $1 in gallery) echo 30 ;; myfiles) echo 34 ;; video|videoeditor) echo 31 ;; *) echo 36 ;; esac; }
+android_of() { case $1 in 30) echo 11 ;; 31) echo 12 ;; 34) echo 14 ;; 35) echo 15 ;; 36) echo 16 ;; 37) echo 17 ;; *) echo "API $1" ;; esac; }
 # The newest version wins if several downloads of one app are lying around.
 find_apk() { for d in . dist; do
   f=$(for g in $d/$(glob_of "$1"); do [ -f "$g" ] && echo "$g"; done | sort -t- -k2 -V | tail -n 1)
   [ -n "$f" ] && { echo "$f"; return; }
-done; }
+done; return 0; }
 die() { echo "error: $*" >&2; exit 1; }
 
 replace=0

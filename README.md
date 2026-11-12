@@ -4,10 +4,10 @@
 
 **Samsung One UI apps, patched to run on non-Samsung Android phones.**
 
-My Files · Gallery · Photo Editor · Video Player (beta)
+My Files · Gallery · Photo Editor · Video Player (beta) · Video Editor (beta)
 
 [![Release](https://img.shields.io/github/v/release/StevenSteel7/OnePort?include_prereleases&label=release)](https://github.com/StevenSteel7/OnePort/releases)
-[![Android](https://img.shields.io/badge/Android-16%2B-3ddc84?logo=android&logoColor=white)](#compatibility)
+[![Android](https://img.shields.io/badge/Android-12%2B-3ddc84?logo=android&logoColor=white)](#compatibility)
 [![arm64](https://img.shields.io/badge/ABI-arm64--v8a-informational)](#compatibility)
 [![License: MIT (tooling)](https://img.shields.io/badge/license-MIT%20(tooling)-blue)](LICENSE)
 
@@ -35,14 +35,15 @@ OnePort adapts Samsung's own One UI apps so they install and run like normal app
 
 ## The apps
 
-| App | Package | Samsung version | Status |
+| App | Package | App version | Status |
 |---|---|---|---|
 | **My Files** | `com.sec.android.app.myfiles` | 15.6.03.3 | ✅ Stable |
 | **Gallery** | `com.sec.android.gallery3d` | 15.9.00.45 | ✅ Stable |
 | **Photo Editor** | `com.sec.android.mimage.photoretouching` | 3.9.09.16 | ✅ Stable |
-| **Video Player** | `com.samsung.android.video` | 7.4.00.6 | 🧪 Beta: playback and picture-in-picture work |
+| **Video Player** | `com.samsung.android.video` | 7.4.00.6 | 🧪 Beta: Android 12+ |
+| **Video Editor** | `com.samsung.app.newtrim` | Source-built 1.3.0 | 🧪 Beta: trim, rotate, mute and save |
 
-The three stable apps are signed with the same key, so they work together the way they do on a Galaxy phone. For example, Gallery's **Edit** button opens Photo Editor, and items you delete go to the Recycle bin that My Files and Gallery share.
+All five apps are signed with the same key, so they work together the way they do on a Galaxy phone. For example, Gallery's **Edit** button opens Photo Editor, and items you delete go to the Recycle bin that My Files and Gallery share.
 
 ## Compatibility
 
@@ -61,21 +62,28 @@ The three stable apps are signed with the same key, so they work together the wa
 | App | Minimum Android | Special access to grant | Works with | Opens from | Size |
 |---|---|---|---|---|---|
 | **My Files** | 14 (API 34) | All files access | Shares the Recycle bin with Gallery | Launcher | 68 MB |
-| **Gallery** | 11 (API 30) | All files access, Media management | **Edit** needs Photo Editor from the same release | Launcher | 59 MB |
+| **Gallery** | 11 (API 30) | All files access, Media management | Photo **Edit** needs Photo Editor; video **Edit** needs Video Editor | Launcher | 59 MB |
 | **Photo Editor** | 16 (API 36) | All files access, Media management | Gallery | Gallery's **Edit** button (no launcher icon, as on a Galaxy phone) | 87 MB |
-| **Video Player** (beta) | 17 (API 37) | All files access | Gallery | Gallery, or any app's **Open with** menu (no launcher icon) | 16 MB |
+| **Video Player** (beta) | 12 (API 31) | All files access | Gallery | Gallery, or any app's **Open with** menu (no launcher icon) | 16 MB |
+| **Video Editor** (beta) | 12 (API 31) | Media management (optional, skips an extra prompt when replacing) | Gallery 1.3.0+ | Launcher, Gallery or **Edit with** | 74 KB |
+
+**New in v1.3.0:** Video Player and Video Editor support Android 12 and newer. See [video compatibility validation](docs/VIDEO_COMPATIBILITY.md) for the emulator results and coverage limits.
 
 Each app can be installed on its own. Install Gallery and Photo Editor together if you want to edit photos from Gallery. `install.sh` grants the special access for you; on the phone you can grant it under *Settings → Apps → Special app access*.
 
 ### Android versions
 
-| Android | My Files | Gallery | Photo Editor | Video Player (beta) |
-|---|---|---|---|---|
-| **17** (API 37) | ✅ Tested | ✅ Tested | ✅ Tested | 🧪 Tested, beta |
-| **16** (API 36) | ✅ Tested (emulator) | ✅ Installs (emulator) | ✅ Installs (emulator) | ❌ Won't install |
-| **14 and 15** (API 34–35) | ✅ Tested (emulator) | ✅ Installs (emulator) | ❌ Won't install | ❌ Won't install |
-| **11 to 13** (API 30–33) | ❌ Won't install | ⚠️ Installs, untested | ❌ Won't install | ❌ Won't install |
-| **10 or older** | ❌ | ❌ | ❌ | ❌ |
+The video apps passed core playback, PiP, editing and export tests on Android 12–16 ARM64 emulators. Physical-device testing from earlier releases is retained below; see [the compatibility report](docs/VIDEO_COMPATIBILITY.md) for exact coverage.
+
+| Android | My Files | Gallery | Photo Editor | Video Player (beta) | Video Editor (beta) |
+|---|---|---|---|---|---|
+| **17** (API 37) | ✅ Tested | ✅ Tested | ✅ Tested | 🧪 Previously tested; not rerun for 1.3.0 | ⚠️ Not rerun for 1.3.0 |
+| **16** (API 36) | ✅ Tested (emulator) | ✅ Installs (emulator) | ✅ Installs (emulator) | 🧪 Tested (emulator) | 🧪 Tested (emulator) |
+| **14 and 15** (API 34–35) | ✅ Tested (emulator) | ✅ Installs (emulator) | ❌ Won't install | 🧪 Tested (emulator) | 🧪 Tested (emulator) |
+| **12 and 13** (API 31, 33) | ❌ Won't install | ⚠️ Gallery handoff tested on 13 | ❌ Won't install | 🧪 Tested (emulator) | 🧪 Tested (emulator) |
+| **12L** (API 32) | ❌ Won't install | ⚠️ Untested | ❌ Won't install | ⚠️ Untested | ⚠️ Untested |
+| **11** (API 30) | ❌ Won't install | ⚠️ Installs, untested | ❌ Won't install | ❌ Won't install | ❌ Won't install |
+| **10 or older** | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 Phones differ in their framework, so an app can crash on one brand and work on another. If you try OnePort on a phone that isn't listed here, please [file a device report](https://github.com/StevenSteel7/OnePort/issues/new?template=device_report.yml), whether it works or not. Each report makes the list above more useful for everyone.
 
@@ -110,7 +118,7 @@ The script checks the phone, installs each app, and grants **All files access** 
 Run these for each APK, in PowerShell or any terminal:
 
 ```sh
-adb install -r -g Gallery-1.2.1.apk
+adb install -r -g Gallery-1.3.0.apk
 adb shell appops set com.sec.android.gallery3d MANAGE_EXTERNAL_STORAGE allow
 adb shell appops set com.sec.android.gallery3d MANAGE_MEDIA allow
 ```
@@ -121,12 +129,12 @@ The package names are in [the apps table](#the-apps).
 ### Option B: phone only
 
 1. Copy the APKs to the phone and open each one. Allow "Install unknown apps" for your browser or file manager when Android asks.
-2. Go to *Settings → Apps → Special app access → **All files access***, and turn it on for each OnePort app.
-3. In the same menu, open ***Media management*** and turn it on for Gallery and Photo Editor.
+2. Go to *Settings → Apps → Special app access → **All files access***, and turn it on for My Files, Gallery, Photo Editor and Video Player if installed. Video Editor uses the system video picker and does not request this access.
+3. In the same menu, open ***Media management*** and turn it on for Gallery and Photo Editor. It is optional for Video Editor and skips an extra system prompt when replacing a video.
 4. Open the apps.
 
 > [!NOTE]
-> Without **All files access**, the apps open but can't edit, move, favourite or delete media that another app created. Granting it force-closes the app once. That's normal: just open it again.
+> For apps requesting **All files access**, leaving it off can prevent editing, moving, favouriting or deleting media created by another app. Granting it force-closes the app once; open it again afterwards.
 
 ## Updating and uninstalling
 
@@ -161,6 +169,13 @@ The package names are in [the apps table](#the-apps).
 - **Picture-in-picture**: press Home during playback, or tap the player's floating-player button. Samsung's own floating window is replaced by Android's built-in PiP.
 - A standard media notification while playing.
 - Opens from Gallery or any app's **Open with** menu. The app has no launcher icon, as on a Galaxy phone.
+
+**Video Editor (beta)**
+- Preview, play/pause, scrub and trim.
+- Rotate by 90 degrees and mute audio.
+- Save a copy or replace the original after confirmation.
+- Opens from Gallery's video Edit button or the launcher. Android 12 uses a document picker; Android 13+ uses the photo picker.
+- Install Gallery 1.3.0 or newer for the complete edit-and-return flow.
 
 ### ❌ Doesn't work, and why
 

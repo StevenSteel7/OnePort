@@ -68,7 +68,11 @@ scripts/build.sh <port> [--repatch] [--install]
 | `--repatch` | Decode the original APK again and re-run the patchers (needed after changing `tools/*.py`) |
 | `--install` | `adb install` the result and grant its app-ops |
 
-The output goes to `dist/<App>-<release>.apk` (for example `dist/Gallery-1.2.1.apk`), named after the OnePort release that last changed that app.
+The output goes to `dist/<App>-<release>.apk` (for example `dist/Gallery-1.3.0.apk`), named after the OnePort release that last changed that app.
+
+### Source-built Video Editor
+
+`scripts/build.sh videoeditor [--install]` builds the editor from `ports/videoeditor/src` and `res`, without a Samsung APK or framework dump. It targets Android 12 and newer, shares the OnePort signing key, and writes `dist/VideoEditor-1.3.0.apk`. `--repatch` is accepted but the source is always rebuilt.
 
 ## Repository layout
 
