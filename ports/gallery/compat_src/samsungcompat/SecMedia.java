@@ -260,7 +260,7 @@ public final class SecMedia {
         String def = "files".equals(table) ? FILES_DEFAULTS.get(col) : null;
         Log.i(TAG, "add column " + table + "." + col + (def != null ? " = " + def : ""));
         sDb.execSQL("ALTER TABLE " + table + " ADD COLUMN " + col);
-        if (def != null) sDb.execSQL("UPDATE " + table + " SET " + col + " = " + def);
+        applyDefault(table, col, def);
         addedColumns(table).add(col);
         if ("files".equals(table) && "is_hide".equals(col)) applyHidden();
     }
@@ -295,10 +295,43 @@ public final class SecMedia {
             if (probe == null) return null;
             java.util.List<String> cols = new ArrayList<>(java.util.Arrays.asList(probe.getColumnNames()));
             if (!cols.contains(MediaStore.MediaColumns.IS_FAVORITE)) cols.add(MediaStore.MediaColumns.IS_FAVORITE);
-            return cols.toArray(new String[0]);
+            // Some providers (Android 16 MediaProvider on HyperOS, ...) list columns in "*" that they reject in an
+            // explicit projection ("Invalid column NULL AS oem_metadata"). Drop each rejected column and retry.
+            for (int attempt = 0; attempt < 16 && !cols.isEmpty(); attempt++) {
+                try (Cursor test = cr.query(MS_FILES, cols.toArray(new String[0]),
+                        MediaStore.MediaColumns._ID + "=0", null, null)) {
+                    return cols.toArray(new String[0]);
+                } catch (IllegalArgumentException e) {
+                    String bad = rejectedColumn(e.getMessage(), cols);
+                    if (bad == null) throw e;
+                    Log.w(TAG, "mirror projection: dropping column rejected by MediaStore: " + bad);
+                    cols.remove(bad);
+                }
+            }
+            return null;
         } catch (RuntimeException e) {
             Log.w(TAG, "mirror projection probe failed", e);
             return null;
+        }
+    }
+
+    /** The projection entry named by "Invalid column X" / "Invalid column NULL AS X", or null. */
+    private static String rejectedColumn(String msg, java.util.List<String> cols) {
+        if (msg == null || !msg.startsWith("Invalid column")) return null;
+        String rest = msg.substring("Invalid column".length()).trim();
+        if (cols.contains(rest)) return rest;
+        int as = rest.toUpperCase(java.util.Locale.ROOT).lastIndexOf(" AS ");
+        String name = as >= 0 ? rest.substring(as + 4).trim() : rest;
+        return cols.contains(name) ? name : null;
+    }
+
+    /** Fill a newly added column from its default; a default whose source columns are missing leaves it NULL. */
+    private static void applyDefault(String table, String col, String def) {
+        if (def == null) return;
+        try {
+            sDb.execSQL("UPDATE " + table + " SET " + col + " = " + def);
+        } catch (SQLiteException e) {
+            Log.w(TAG, "default for " + table + "." + col + " not applicable: " + e.getMessage());
         }
     }
 
@@ -358,8 +391,7 @@ public final class SecMedia {
                 for (String c : new ArrayList<>(addedColumns("files"))) {
                     if (have.contains(c)) continue;
                     sDb.execSQL("ALTER TABLE files ADD COLUMN " + c);
-                    String def = FILES_DEFAULTS.get(c);
-                    if (def != null) sDb.execSQL("UPDATE files SET " + c + " = " + def);
+                    applyDefault("files", c, FILES_DEFAULTS.get(c));
                 }
                 applyHidden();
                 // Gallery suppresses MediaStore observer events when this data stamp does not change. Samsung's

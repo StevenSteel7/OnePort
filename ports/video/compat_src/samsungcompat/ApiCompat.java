@@ -32,6 +32,28 @@ public final class ApiCompat {
     }
 
 
+    /**
+     * One UI's system Video Player broadcasts to UserHandle.ALL; a normal app needs INTERACT_ACROSS_USERS for that,
+     * which can't be granted. Send to the current user instead.
+     */
+    public static void sendBroadcastAsUser(android.content.Context context, android.content.Intent intent,
+            android.os.UserHandle user) {
+        try {
+            context.sendBroadcastAsUser(intent, user);
+        } catch (SecurityException e) {
+            context.sendBroadcast(intent);
+        }
+    }
+
+    public static void sendBroadcastAsUser(android.content.Context context, android.content.Intent intent,
+            android.os.UserHandle user, String receiverPermission) {
+        try {
+            context.sendBroadcastAsUser(intent, user, receiverPermission);
+        } catch (SecurityException e) {
+            context.sendBroadcast(intent, receiverPermission);
+        }
+    }
+
     public static android.graphics.Xfermode fadingMode(int mode) {
         return new android.graphics.PorterDuffXfermode(mode == 0
                 ? android.graphics.PorterDuff.Mode.DST_OUT : android.graphics.PorterDuff.Mode.SRC_OVER);

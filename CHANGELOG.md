@@ -4,6 +4,10 @@ All notable changes to OnePort. The format follows [Keep a Changelog](https://ke
 
 ## [Unreleased]
 
+### Fixed
+- **Gallery crashed on launch on HyperOS / Android 16 (#22).** MediaProvider lists `oem_metadata` in `*` but rejects it in an explicit projection, so the media mirror was never built. The mirror now drops columns MediaStore rejects and retries, and a column default whose source column is missing leaves the value NULL instead of crashing.
+- **Video Player crashed when opening a video (#17).** `MoviePlayer` and a few helpers broadcast to `UserHandle.ALL`, which needs `INTERACT_ACROSS_USERS`. These calls now go through `samsungcompat.ApiCompat`, which falls back to the current user.
+
 ## [1.3.0] - 2026-11-12
 
 ### Added
